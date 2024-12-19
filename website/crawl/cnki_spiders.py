@@ -69,54 +69,202 @@ class KeyList:
             print(f"输入关键词异常: {str(e)}")
             raise
 
+    # def crawl_qikan(self):
+    #     """爬取期刊"""
+    #     # 选择期刊
+    #     try:
+    #         self.driver.find_element_by_xpath("/html/body/div[2]/div[1]/div[2]/div/div/ul/li[1]/a").click()
+    #     except Exception as e:
+    #         print("出现错误")
+    #         print(e)
+    #         return
+    #     time.sleep(2)
+    #     count = 0
+    #     # 爬取前三页的期刊信息
+    #     for i in range(3):
+    #         # 获取表格行列表
+    #         article_table = self.driver.find_element_by_class_name("result-table-list")
+    #         article_table = article_table.find_element_by_tag_name("tbody")
+    #         article_list = article_table.find_elements_by_tag_name("tr")
+    #         for article in article_list:
+    #             if self._row_qikan(article):
+    #                 count += 1
+    #         next_tag = self.driver.find_element_by_xpath('//*[@id="PageNext"]')
+    #         next_tag.click()
+    #         time.sleep(2)
+    #     print('成功爬取{}文献'.format(count))
     def crawl_qikan(self):
         """爬取期刊"""
-        # 选择期刊
         try:
-            self.driver.find_element_by_xpath("/html/body/div[5]/div[1]/div/ul[1]/li[1]/a").click()
+            # 选择期刊
+            WebDriverWait(self.driver, 10).until(
+                EC.element_to_be_clickable((By.XPATH, "/html/body/div[2]/div[1]/div[2]/div/div/ul/li[1]/a"))
+            ).click()
+            print("点击期刊")
+            
+            # 等待期刊列表加载
+            WebDriverWait(self.driver, 10).until(
+                EC.presence_of_element_located((By.CLASS_NAME, "result-table-list"))
+            )
+            
+            count = 0
+            # 爬取前三页的期刊信息
+            for i in range(3):
+                try:
+                    # 等待新页面加载完成
+                    WebDriverWait(self.driver, 10).until(
+                        EC.presence_of_element_located((By.CLASS_NAME, "result-table-list"))
+                    )
+                    
+                    # 等待所有行元素加载完成
+                    WebDriverWait(self.driver, 10).until(
+                        EC.presence_of_all_elements_located((By.CSS_SELECTOR, ".result-table-list tbody tr"))
+                    )
+                    
+                    # 获取当前页面所有行的数据
+                    rows = self.driver.find_elements_by_css_selector(".result-table-list tbody tr")
+                    
+                    # 处理每一行
+                    for row in rows:
+                        try:
+                            # 在处理每行之前确保元素仍然可交互
+                            WebDriverWait(self.driver, 5).until(
+                                EC.visibility_of(row)
+                            )
+                            
+                            # 在同一行内快速获取所需的所有数据
+                            title_element = row.find_element_by_css_selector(".name a")
+                            source_element = row.find_element_by_css_selector(".source a")
+                            date_element = row.find_element_by_css_selector(".date")
+                            
+                            # 获取所需的属性
+                            article_href = title_element.get_attribute('href')
+                            source_href = source_element.get_attribute('href')
+                            publish_date = date_element.text
+                            
+                            # 提取URL参数
+                            v_param = re.search(r'v=(.*?)(?:&|$)', article_href)
+                            p_param = re.search(r'p=(.*?)(?:&|$)', source_href)
+                            
+                            if v_param and p_param:
+                                url_article = v_param.group(1)
+                                url_source = p_param.group(1)
+                                
+                                # 存储到Redis
+                                self.r.set(url_article, publish_date)
+                                
+                                # 存储到MySQL
+                                sql_re_as = "insert into re_article_source(url_article,url_source) " \
+                                          "values('{}','{}')".format(url_article, url_source)
+                                self._execute_sql(sql_re_as)
+                                count += 1
+                                
+                        except Exception as row_e:
+                            print(f"处理单行数据时出现异常: {str(row_e)}")
+                            continue
+                    
+                    # 点击下一页
+                    next_button = WebDriverWait(self.driver, 10).until(
+                        EC.element_to_be_clickable((By.ID, "PageNext"))
+                    )
+                    next_button.click()
+                    
+                    # 等待页面刷新
+                    time.sleep(2)
+                    
+                except Exception as e:
+                    print(f"爬取第{i+1}页期刊时出现异常: {str(e)}")
+                    continue
+                    
+            print('成功爬取{}期刊'.format(count))
+            
         except Exception as e:
-            print("出现错误")
-            print(e)
+            print(f"爬取期刊整体异常: {str(e)}")
             return
-        time.sleep(2)
-        count = 0
-        # 爬取前三页的期刊信息
-        for i in range(3):
-            # 获取表格行列表
-            article_table = self.driver.find_element_by_class_name("result-table-list")
-            article_table = article_table.find_element_by_tag_name("tbody")
-            article_list = article_table.find_elements_by_tag_name("tr")
-            for article in article_list:
-                if self._row_qikan(article):
-                    count += 1
-            next_tag = self.driver.find_element_by_xpath('//*[@id="PageNext"]')
-            next_tag.click()
-            time.sleep(2)
-        print('成功爬取{}文献'.format(count))
 
     def crawl_lunwen(self):
         """爬取论文"""
         try:
-            self.driver.find_element_by_xpath("/html/body/div[5]/div[1]/div/ul[1]/li[2]/a").click()
+            # 等待并点击论文标签
+            WebDriverWait(self.driver, 10).until(
+                EC.element_to_be_clickable((By.XPATH, "/html/body/div[2]/div[1]/div[2]/div/div/ul/li[2]/a"))
+            ).click()
             print("点击论文")
+            
+            # 等待论文列表加载
+            WebDriverWait(self.driver, 10).until(
+                EC.presence_of_element_located((By.CLASS_NAME, "result-table-list"))
+            )
+            
+            count = 0
+            # 爬取前三页的论文信息
+            for i in range(3):
+                try:
+                    # 等待新页面加载完成
+                    WebDriverWait(self.driver, 10).until(
+                        EC.presence_of_element_located((By.CLASS_NAME, "result-table-list"))
+                    )
+                    
+                    # 等待所有行元素加载完成
+                    WebDriverWait(self.driver, 10).until(
+                        EC.presence_of_all_elements_located((By.CSS_SELECTOR, ".result-table-list tbody tr"))
+                    )
+                    
+                    # 获取当前页面所有行的数据
+                    rows = self.driver.find_elements_by_css_selector(".result-table-list tbody tr")
+                    
+                    # 处理每一行
+                    for row in rows:
+                        try:
+                            # 在处理每行之前确保元素仍然可交互
+                            WebDriverWait(self.driver, 5).until(
+                                EC.visibility_of(row)
+                            )
+                            
+                            # 在同一行内快速获取所需的所有数据
+                            title_element = row.find_element_by_css_selector(".name a")
+                            unit_element = row.find_element_by_css_selector(".unit a")
+                            
+                            # 获取所需的属性
+                            article_href = title_element.get_attribute('href')
+                            source_href = unit_element.get_attribute('href')
+                            
+                            # 提取URL参数
+                            v_param = re.search(r'v=(.*?)(?:&|$)', article_href)
+                            p_param = re.search(r'p=(.*?)(?:&|$)', source_href)
+                            
+                            if v_param and p_param:
+                                url_article = v_param.group(1)
+                                url_source = p_param.group(1)
+                                
+                                # 存储到MySQL
+                                sql_re_as = "insert into re_article_source(url_article,url_source) " \
+                                          "values('{}','{}')".format(url_article, url_source)
+                                self._execute_sql(sql_re_as)
+                                count += 1
+                                
+                        except Exception as row_e:
+                            print(f"处理单行数据时出现异常: {str(row_e)}")
+                            continue
+                    
+                    # 点击下一页
+                    next_button = WebDriverWait(self.driver, 10).until(
+                        EC.element_to_be_clickable((By.ID, "PageNext"))
+                    )
+                    next_button.click()
+                    
+                    # 等待页面刷新
+                    time.sleep(2)
+                    
+                except Exception as e:
+                    print(f"爬取第{i+1}页论文时出现异常: {str(e)}")
+                    continue
+                    
+            print('成功爬取{}论文'.format(count))
+            
         except Exception as e:
-            print(e)
+            print(f"爬取论文整体异常: {str(e)}")
             return
-        time.sleep(2)
-        count = 0
-        for i in range(3):
-            # 获取表格行列表
-            article_table = self.driver.find_element_by_class_name("result-table-list")
-            article_table = article_table.find_element_by_tag_name("tbody")
-            article_list = article_table.find_elements_by_tag_name("tr")
-            for article in article_list:
-                if self._row_lunwen(article):
-                    count += 1
-            # 爬取论文行数据并存入mysql相应关系表
-            next_tag = self.driver.find_element_by_xpath('//*[@id="PageNext"]')
-            next_tag.click()
-            time.sleep(2)
-        print('成功爬取{}论文'.format(count))
 
     def crawl(self, keyword):
         """爬取本列表的期刊和论文"""
@@ -130,80 +278,77 @@ class KeyList:
 
     def _row_qikan(self, article):
         """爬取期刊行"""
-        # 保存文章标题
-        title_tag = article.find_element_by_class_name("name").find_element_by_tag_name("a")
-        title = title_tag.text
+        try:
+            # 保存文章标题
+            title_tag = article.find_element_by_class_name("name").find_element_by_tag_name("a")
+            title = title_tag.text
 
-        # 获取文章url
-        url_article = title_tag.get_attribute('href')
-        url_article = articleToUrl(url_article)
-        if url_article == '#':
-            return False
+            # 获取文章url并提取v参数
+            article_href = title_tag.get_attribute('href')
+            v_param = re.search(r'v=(.*?)(?:&|$)', article_href)
+            if not v_param:
+                print(f"无法从文章URL中提取v参数: {article_href}")
+                return False
+            url_article = v_param.group(1)
 
-        # # 作者url
-        # author_list_a = article.find_element_by_class_name("author").find_elements_by_tag_name("a")
-        # authors = []
-        # for author_a in author_list_a:
-        #     # sfield=au&skey=原雯&code=45345959
-        #     name = author_a.text
-        #     name_url = "sfield=au&skey=" + name + "&code="
-        #     try:
-        #         href = author_a.get_attribute('href')
-        #         code = extractAuthorCode(href)
-        #         name_url = name_url + code
-        #         # 提取code
-        #         authors.append(name_url)
-        #     except NoSuchElementException:
-        #         authors.append('#')
+            # 获取来源url并提取p参数
+            source = article.find_element_by_class_name('source').find_element_by_tag_name('a')
+            source_href = source.get_attribute('href')
+            p_param = re.search(r'p=(.*?)(?:&|$)', source_href)
+            if not p_param:
+                print(f"无法从来源URL中提取p参数: {source_href}")
+                return False
+            url_source = p_param.group(1)
 
-        # 刊名，链接
-        source = article.find_element_by_class_name('source').find_element_by_tag_name('a')
-        source_name = source.text
-        source_href = source.get_attribute('href')
-        url_source = sourceToUrl(source_href)
-
-        # 日期
-        publish_date = article.find_element_by_class_name('date').text
-        # print(title)
+            # 日期
+            publish_date = article.find_element_by_class_name('date').text
 
         # 存储文献日期到redis
-        self.r.set(url_article, publish_date)
+            self.r.set(url_article, publish_date)
 
-        # # 文献作者关系存储到mysql表
-        # for url_author in authors:
-        #     sql_re_aa = "insert into re_article_author(url_article,url_author) " \
-        #                 "values('{}','{}')".format(url_article, url_author)
-        #     self._execute_sql(sql_re_aa)
-
-        # 文献来源关系存储到mysql表中
-        sql_re_as = "insert into re_article_source(url_article,url_source) " \
-                    "values('{}','{}')".format(url_article, url_source)
-        self._execute_sql(sql_re_as)
-        return True
-
-    def _row_lunwen(self, article):
-        """爬取期刊行"""
-        # 保存文章标题
-        title_tag = article.find_element_by_class_name("name").find_element_by_tag_name("a")
-        title = title_tag.text
-
-        # 获取论文url
-        url_article = title_tag.get_attribute('href')
-        url_article = lunwenToUrl(url_article)
-        if url_article == '#':
+            # 文献来源关系存储到mysql表中
+            sql_re_as = "insert into re_article_source(url_article,url_source) " \
+                        "values('{}','{}')".format(url_article, url_source)
+            self._execute_sql(sql_re_as)
+            return True
+            
+        except Exception as e:
+            print(f"处理期刊行数据异常: {str(e)}")
             return False
 
-        # 获取学校来源url
-        unit = article.find_element_by_class_name('unit').find_element_by_tag_name('a')
-        school_name = unit.text
-        source_href = unit.get_attribute('href')
-        url_school = sourceToUrl(source_href)
+    def _row_lunwen(self, article):
+        """爬取论文行"""
+        try:
+            # 保存文章标题
+            title_tag = article.find_element_by_class_name("name").find_element_by_tag_name("a")
+            title = title_tag.text
 
-        # 文献来源关系存储到mysql表中
-        sql_re_as = "insert into re_article_source(url_article,url_source) " \
-                    "values('{}','{}')".format(url_article, url_school)
-        self._execute_sql(sql_re_as)
-        return True
+            # 获取论文url并提取v参数
+            article_href = title_tag.get_attribute('href')
+            v_param = re.search(r'v=(.*?)(?:&|$)', article_href)
+            if not v_param:
+                print(f"无法从论文URL中提取v参数: {article_href}")
+                return False
+            url_article = v_param.group(1)
+
+            # 获取学校来源url并提取p参数
+            unit = article.find_element_by_class_name('unit').find_element_by_tag_name('a')
+            source_href = unit.get_attribute('href')
+            p_param = re.search(r'p=(.*?)(?:&|$)', source_href)
+            if not p_param:
+                print(f"无法从来源URL中提取p参数: {source_href}")
+                return False
+            url_source = p_param.group(1)
+
+            # 文献来源关系存储到mysql表中
+            sql_re_as = "insert into re_article_source(url_article,url_source) " \
+                        "values('{}','{}')".format(url_article, url_source)
+            self._execute_sql(sql_re_as)
+            return True
+            
+        except Exception as e:
+            print(f"处理论文行数据异常: {str(e)}")
+            return False
 
     def _execute_sql(self, sql):
         """执行SQL语句

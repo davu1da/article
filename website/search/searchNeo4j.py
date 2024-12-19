@@ -1,6 +1,6 @@
 from py2neo import Graph, NodeMatcher
 
-from .ogm import Article, Author, Organization, Source
+from ogm import Article, Author, Organization, Source
 
 
 

@@ -30,7 +30,7 @@ ALLOWED_HOSTS = []
 
 INSTALLED_APPS = [
     'search.apps.SearchConfig',
-    'polls.apps.PollsConfig',
+    # 'polls.apps.PollsConfig',  # 注释掉或删除这行
     'crawl.apps.CrawlConfig',
     'django.contrib.admin',
     'django.contrib.auth',
@@ -119,3 +119,11 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/3.1/howto/static-files/
 
 STATIC_URL = '/static/'
+
+# 开发环境下的静态文件目录
+STATICFILES_DIRS = [
+    BASE_DIR / "search/static",
+]
+
+# 生产环境下collectstatic收集的静态文件存放目录
+STATIC_ROOT = BASE_DIR / 'staticfiles'  # 改成staticfiles或其他名字，避免与app中的static冲突

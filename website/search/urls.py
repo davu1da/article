@@ -1,4 +1,6 @@
 from django.urls import path
+from django.conf import settings
+from django.conf.urls.static import static
 
 from . import views
 
@@ -12,4 +14,4 @@ urlpatterns = [
     path('organization/<str:organizationUrl>', views.organizationDetail, name='organization'),
     path('source/<str:sourceUrl>', views.sourceDetail, name='source'),
     path('<str:keyword>', views.search, name='search'),
-]
+] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

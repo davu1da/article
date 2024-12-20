@@ -875,12 +875,11 @@ class Author(CrawlBase):
                             tutor_spans = tutor_list.select('ul.col4 li span')
                             for span in tutor_spans:
                                 tutor_url = span.find('a')
-                                if tutor_url:
-                                    tutor_name = span.get_text(strip=True)
-                                    if tutor_name:
-                                        teachers.append(tutor_name)
-                                        teachers_urls.append(tutor_url)
-                                        print(f"找到导师: {tutor_name}")
+                                tutor_name = span.get_text(strip=True)
+                                if tutor_url and tutor_name:
+                                    teachers.append(tutor_name)
+                                    teachers_urls.append(tutor_url)
+                                    print(f"找到导师: {tutor_name}")
                         else:
                             print("未找到导师列表容器(div#tuhor)")
                     else:

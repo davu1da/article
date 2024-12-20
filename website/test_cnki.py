@@ -21,12 +21,9 @@ from crawl.cnki_spiders import (
 
 
 ARTICLE_URL = "dbcode=CAPJ&dbname=CAPJDAY&filename=ZZDZ20210513000"
-# AUTHOR_URL = "skey=王宁&code=33167488"
-# AUTHOR_URL = "skey=傅广生&code=05967496"
-# AUTHOR_URL = "skey=王颖&code=07079336"
-# AUTHOR_URL = "skey=袁方&code=07075939"
+AUTHOR_URL = "v=XRdBcB-NO4TLPjAaOfWrz8d9fBEMGihtESuWihajiHhu68VhIlX_kYo03z91q04bsXXHzgRtf3-agm7aLo01QxBPnhwQONVMtKPjLnMcTiVuTENatSsZ8Q==&uniplatform=NZKPT&language=CHS"
+# AUTHOR_URL =  "v=XRdBcB-NO4SSJMGdxrveN307Tkpy5J4EiHnidfOBWimMbUneYr6fsYlfs0-n4BUKPXcO9I4EsV3M7GyuEfn08TS6udT0xmAZ22KOVxpMYSazeVyzevYSGYnXBm7fq-GH&uniplatform=NZKPT&language=CHS"
 # AUTHOR_URL = "v=Ep7N7zfewyReP0ElszwmahzjmZPdV_ulkMlPm-aaVGgR0OJu6w8YJlMtCEfH20D-oRbRBfBeHa2cAdpQgvn4TEnrhi9hqIlR553genE22v5geN-D5-YT1g==&uniplatform=NZKPT&language=CHS"
-AUTHOR_URL = "skey=杜会静&code=07074873"
 SOURCE_URL = "DBCode=cjfq&BaseID=ZZDZ"
 # ORGANIZATION_URL = "sfield=in&skey=河北大学&code=0106010"
 ORGANIZATION_URL = "sfield=in&skey=北京大学"

@@ -7,7 +7,7 @@ import requests
 from bs4 import BeautifulSoup
 from pymysql import IntegrityError
 from selenium import webdriver
-from selenium.common.exceptions import NoSuchElementException, WebDriverException
+from selenium.common.exceptions import NoSuchElementException, WebDriverException, TimeoutException
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
@@ -100,7 +100,7 @@ class KeyList:
             WebDriverWait(self.driver, 10).until(
                 EC.element_to_be_clickable((By.XPATH, "/html/body/div[2]/div[1]/div[2]/div/div/ul/li[1]/a"))
             ).click()
-            print("点击期刊")
+            print("点击期")
             
             # 等待期刊列表加载
             WebDriverWait(self.driver, 10).until(
@@ -153,7 +153,7 @@ class KeyList:
                                 # 存储到Redis
                                 self.r.set(url_article, publish_date)
                                 
-                                # 存储到MySQL
+                                # 存储��MySQL
                                 sql_re_as = "insert into re_article_source(url_article,url_source) " \
                                           "values('{}','{}')".format(url_article, url_source)
                                 self._execute_sql(sql_re_as)
@@ -408,6 +408,14 @@ class Article(CrawlBase):
             chrome_options = Options()
             chrome_options.add_argument('--headless')  # 无界面模式
             chrome_options.add_argument('--disable-gpu')
+            chrome_options.add_argument('--no-sandbox')
+            chrome_options.add_argument('--disable-dev-shm-usage')
+
+            # 添加以下选项来模拟真实浏览器
+            chrome_options.add_argument('--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36')
+            chrome_options.add_argument('--disable-blink-features=AutomationControlled')
+            chrome_options.add_experimental_option('excludeSwitches', ['enable-automation'])
+            chrome_options.add_experimental_option('useAutomationExtension', False)
             
             self.driver = webdriver.Chrome(options=chrome_options)
             self.driver.get("https://kns.cnki.net/kcms/detail/detail.aspx?" + url)
@@ -513,10 +521,10 @@ class Article(CrawlBase):
 
 
 class Author(CrawlBase):
-    """作者详情页
-    信息：主修专业，总发文量，总下载量
-    关系：作者-文献，师生，所在机构，同机构的合作者
-    """
+    """爬取作者详情
+        返回字典：链接url，姓名name，主修专业major，总发布量sum_publish，总下载量sum_download，
+        文献articles，老师teachers，学生students，所在机构organization，同机构的合作者cooperations
+        """
 
     def __init__(self, url):
         """初始化作者类
@@ -527,111 +535,187 @@ class Author(CrawlBase):
         self.url = url
         self.driver = None
         self.soup = None
+        # 添加数据库连接
+        self.db = pymysql.connect(
+            host=MYSQL_HOST,
+            user=USERNAME,
+            passwd=PASSWORD,
+            db=DATABASE,
+            port=MYSQL_PORT,
+            charset='utf8'
+        )
         
-        try:
-            chrome_options = Options()
-            chrome_options.add_argument('--headless')
-            chrome_options.add_argument('--disable-gpu')
-            chrome_options.add_argument('--no-sandbox')
-            chrome_options.add_argument('--disable-dev-shm-usage')
-            
-            self.driver = webdriver.Chrome(options=chrome_options)
-            self.driver.set_page_load_timeout(30)  # 设置页面加载超时
-            
-            # 访问作者页面
-            author_url = "https://kns.cnki.net/old/kcms2/author/detail?" + url
-            self.driver.get(author_url)
-            
-            # 等待页面加载
-            WebDriverWait(self.driver, 10).until(
-                EC.presence_of_element_located((By.ID, "kcms-author-info"))
-            )
-            
-            # 获取页面内容
-            page_source = self.driver.page_source
-            self.soup = BeautifulSoup(page_source, 'html.parser')
-            
-        except Exception as e:
-            print(f"初始化Author异常: {str(e)}")
-            if self.driver:
-                try:
+        max_retries = 3  # 最大重试次数
+        retry_count = 0
+        
+        while retry_count < max_retries:
+            try:
+                # 使用Selenium
+                chrome_options = Options()
+                chrome_options.add_argument('--headless')  # 无界面模式
+                chrome_options.add_argument('--disable-gpu')
+                chrome_options.add_argument('--no-sandbox')
+                chrome_options.add_argument('--disable-dev-shm-usage')
+
+                # 添加以下选项来模拟真实浏览器
+                chrome_options.add_argument('--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36')
+                chrome_options.add_argument('--disable-blink-features=AutomationControlled')
+                chrome_options.add_experimental_option('excludeSwitches', ['enable-automation'])
+                chrome_options.add_experimental_option('useAutomationExtension', False)
+                
+                # 显示打开浏览器
+                self.driver = webdriver.Chrome()
+                print("全局等待时间设置3秒")
+                self.driver.implicitly_wait(3)
+                print("窗口最大化")
+
+                # 访问作者页面
+                author_url = "https://kns.cnki.net/kcms2/author/detail?" + url
+                self.driver.get(author_url)
+                
+                # 等待页面基本元素加载
+                wait = WebDriverWait(self.driver, 20, poll_frequency=1)
+                element = wait.until(
+                    EC.presence_of_element_located((By.CSS_SELECTOR, ".doc, .author-info, .author-detail"))
+                )
+                
+                if not element:
+                    raise TimeoutException("页面关键元素未加载")
+                
+                # 模拟页面滚动以加载所有内容
+                last_height = self.driver.execute_script("return document.body.scrollHeight")
+                scroll_pause_time = random.uniform(1, 3)  # 随机等待1-3秒
+                
+                while True:
+                    # 滚动到页面底部
+                    self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+                    
+                    # 等待页面加载
+                    time.sleep(scroll_pause_time)
+                    
+                    # 计算新的滚动高度并与之前的滚动高度进行比较
+                    new_height = self.driver.execute_script("return document.body.scrollHeight")
+                    if new_height == last_height:
+                        # 如果高度没有变化，说明已经到底部了
+                        break
+                    last_height = new_height
+                    
+                    # 更新等待时间
+                    scroll_pause_time = random.uniform(1, 3)
+                
+                # 再次滚动到顶部，确保所有元素都被载
+                self.driver.execute_script("window.scrollTo(0, 0);")
+                time.sleep(2)
+                
+                # 获取完整的页面内容
+                page_source = self.driver.page_source
+                self.soup = BeautifulSoup(page_source, 'html.parser')
+                
+                # 成功获取页面内容，跳出重试循环
+                break
+                
+            except TimeoutException as te:
+                print(f"页面加载超时 (尝试 {retry_count + 1}/{max_retries}): {str(te)}")
+                retry_count += 1
+                if self.driver:
                     self.driver.quit()
-                except:
-                    pass
-                self.driver = None
+                    self.driver = None
+                if retry_count < max_retries:
+                    time.sleep(5 * retry_count)  # 递增等待时间
+                    continue
+                    
+            except WebDriverException as we:
+                print(f"WebDriver异常 (尝试 {retry_count + 1}/{max_retries}): {str(we)}")
+                retry_count += 1
+                if self.driver:
+                    self.driver.quit()
+                    self.driver = None
+                if retry_count < max_retries:
+                    time.sleep(5 * retry_count)
+                    continue
+                    
+            except Exception as e:
+                print(f"其他异常 (尝试 {retry_count + 1}/{max_retries}): {str(e)}")
+                retry_count += 1
+                if self.driver:
+                    self.driver.quit()
+                    self.driver = None
+                if retry_count < max_retries:
+                    time.sleep(5 * retry_count)
+                    continue
+                    
+            # finally:
+            #     # 确保driver被关闭
+            #     if self.driver:
+            #         try:
+            #             self.driver.quit()
+            #         except:
+            #             pass
+                    
+        # 如果所有重试都失败
+        if retry_count >= max_retries:
+            print(f"在{max_retries}次尝试后仍无法加载页面")
             self.soup = None
 
     def crawl(self):
-        """爬取作者详情
-        Returns:
-            dict: 包含作者信息的字典
-        """
-        default_result = {
-            'url': self.url,
-            'name': '获取失败',
-            'major': '',
-            'sum_publish': 0,
-            'sum_download': 0,
-            'articles': []
-        }
-        
+        """爬取作者详情页信息"""
         if not self.soup:
-            return default_result
-        
+            return {
+                'url': self.url,
+                'name': '获取失败',
+                'major': '',
+                'sum_publish': 0,
+                'sum_download': 0,
+                'articles': [],  # 现在存储的是标题列表
+                'teachers': [],
+                'students': [],
+                'organization': '',
+                'cooperations': []
+            }
+
         try:
             item = {'url': self.url}
             
-            # 获取作者基本信息区域
-            author_info = self.soup.find('div', id='kcms-author-info')
-            if not author_info:
-                return default_result
-            
             # 获取姓名
-            name_elem = author_info.find('h1', id='showname')
-            item['name'] = name_elem.text.strip() if name_elem else '未知'
+            item['name'] = self._crawl_name()
             
             # 获取专业领域
-            major_elem = author_info.find('h3', class_='expert-field')
-            if major_elem and major_elem.find('span'):
-                item['major'] = major_elem.find('span').text.strip()
-            else:
-                item['major'] = ''
+            item['major'] = self._crawl_major()
             
             # 获取发文量和下载量
-            try:
-                stats = author_info.find_all('div', class_='amount')
-                if len(stats) >= 2:
-                    item['sum_publish'] = int(stats[0].text) if stats[0].text.isdigit() else 0
-                    item['sum_download'] = int(stats[1].text) if stats[1].text.isdigit() else 0
-            except:
-                item['sum_publish'] = 0
-                item['sum_download'] = 0
+            item['sum_publish'], item['sum_download'] = self._crawl_sum_publish_download()
+                
+            # 获取文章列表(期刊和博论文)
+            item['articles'] = self._crawl_articles()
             
-            # 获取文章列表
-            articles = []
-            article_section = self.soup.find('div', id='KCMS-AUTHOR-JOURNAL-LITERATURES')
-            if article_section:
-                article_list = article_section.find_all('li')
-                for article in article_list:
-                    article_link = article.find('a')
-                    if article_link:
-                        article_url = article_link.get('href', '')
-                        if article_url:
-                            # 从href中提取文章URL参数
-                            url_params = re.search(r'v=(.*?)&', article_url)
-                            if url_params:
-                                articles.append({
-                                    'title': article_link.text.strip(),
-                                    'url': url_params.group(1)
-                                })
-                            
-            item['articles'] = articles
+            # 获取导师信息
+            item['teachers'] = self._crawl_teachers()
+
+            # 获取学生信息
+            item['students'] = self._crawl_students()
+            
+            # 获取所在机构
+            item['organization'] = self._crawl_organization()
+            
+            # 获取合作作者
+            item['cooperations'] = self._crawl_cooperations()
             
             return item
             
         except Exception as e:
             print(f"爬取作者详情异常: {str(e)}")
-            return default_result
+            return {
+                'url': self.url,
+                'name': '爬取异常',
+                'major': '',
+                'sum_publish': 0,
+                'sum_download': 0,
+                'articles': [],
+                'teachers': [],
+                'students': [],
+                'organization': '',
+                'cooperations': []
+            }
 
     def close(self):
         """关闭浏览器"""
@@ -685,6 +769,212 @@ class Author(CrawlBase):
         except Exception as e:
             print(f"存储作者数据异常: {str(e)}")
 
+    def _crawl_name(self):
+        name_elem = self.soup.find('h1', id='showname')
+        name = name_elem.text.strip() if name_elem else '未知'
+        return name
+    
+    def _crawl_major(self):
+        try:
+            # 使用更精确的XPath选择器
+            major_elem = self.soup.select_one('div.author-info h3:nth-of-type(2) span')
+            major = "无"
+            if major_elem:
+                # 获取专业文本并清理
+                major_text = major_elem.get_text(strip=True)
+                if major_text:
+                    major = major_text
+                    print(f"成功获取专业领域: {major_text}")
+            else:
+                # 备用方案：尝试直接用XPath
+                major_elem = self.soup.find('span', style=' display: inline-table;')
+                if major_elem:
+                    major_text = major_elem.get_text(strip=True)
+                    major = major_text
+                    print(f"通过备用方案获取专业领域: {major_text}")
+                else:
+                    print("未找到专业领域标签")
+                    major = ''
+                
+        except Exception as e:
+            print(f"获取专业领域失败: {str(e)}")
+            major = ''
+        return major
+    
+    def _crawl_sum_publish_download(self):
+        try:
+            stats = self.soup.find_all('em', class_='amount')
+            sum_publish = 0
+            sum_download = 0
+            if len(stats) >= 2:
+                sum_publish = int(stats[0].text) if stats[0].text.isdigit() else 0
+                sum_download = int(stats[1].text) if stats[1].text.isdigit() else 0
+        except:
+            sum_publish = 0
+            sum_download = 0
+        return sum_publish, sum_download
+    
+    def _crawl_articles(self):
+        """获取作者的所有文章标题
+        Returns:
+            list: 文章标题列表
+        """
+        articles = []
+        article_urls = []
+        for section_id in ['KCMS-AUTHOR-JOURNAL-LITERATURES', 'KCMS-AUTHOR-DISSERTATION-LITERATURES']:
+            article_section = self.soup.find('div', id=section_id)
+            if article_section:
+                article_list = article_section.find_all('li')
+                for article in article_list:
+                    article_link = article.find('a')
+                    if article_link:
+                        article_title = article_link.get_text(strip=True)
+                        article_url = article_link.get('href', '')
+                        if article_title:
+                            articles.append(article_title)
+                            print(f"找到文章: {article_title}")
+                        if article_url:
+                            article_urls.append(article_url)
+                            # print(f"找到文章URL: {article_url}")
+        # 将文章的v参数提取
+        article_v = []
+        for article_url in article_urls:
+            url_params = re.search(r'v=(.*?)(?:&|$)', article_url)
+            if url_params:
+                article_v.append(url_params.group(1))
+        return list(set(article_v))  # 使用集合去重
+    
+    def _crawl_teachers(self):
+        try:
+            teachers = []
+            teachers_urls = []
+            # 先检查driver是否还活着
+            if not self.driver or not hasattr(self, 'driver'):
+                print("WebDriver已关闭或未初始化")
+                teachers = []
+                teachers_urls = []
+            else:
+                    
+                # 使用JavaScript检查元素是否存在
+                is_element_present = self.driver.execute_script("""
+                    return !!document.getElementById('kcms-author-tutor');
+                """)
+                    
+                if is_element_present:
+                    # 获取渲染后的页面内容
+                    # page_source = self.driver.page_source
+                    # self.soup = BeautifulSoup(page_source, 'html.parser')
+                    
+                    # 在更新后的soup中查找导师信息
+                    tutor_container = self.soup.find('div', {'id': 'kcms-author-tutor', 'class': 'module-con dis-show'})
+                    if tutor_container:
+                        # 在容器中找到具体的导师列表
+                        tutor_list = tutor_container.find('div', {'id': 'tuhor', 'class': 'listcont'})
+                        if tutor_list:
+                            # 获取所有导师span标签
+                            tutor_spans = tutor_list.select('ul.col4 li span')
+                            for span in tutor_spans:
+                                tutor_url = span.find('a')
+                                if tutor_url:
+                                    tutor_name = span.get_text(strip=True)
+                                    if tutor_name:
+                                        teachers.append(tutor_name)
+                                        teachers_urls.append(tutor_url)
+                                        print(f"找到导师: {tutor_name}")
+                        else:
+                            print("未找到导师列表容器(div#tuhor)")
+                    else:
+                        print("未找到导师信息容器(div#kcms-author-tutor)")
+                else:
+                    print("页面中不存在导师信息元素")
+                    
+        except Exception as e:
+            print(f"获取导师信息时发生异常: {str(e)}")
+            if "connection" in str(e).lower():
+                print("WebDriver连接已断开，需要重新初始化")
+        if not teachers:
+            print("未找到任何导师")
+        else:
+            print(f"找到{len(teachers)}位导师")
+            print(teachers)
+        if not teachers_urls:
+            print("未找到任何导师URL")
+        else:
+            print(f"找到{len(teachers_urls)}位导师URL")
+            print(teachers_urls)
+        return teachers_urls
+    
+    def _crawl_students(self):
+        students = []
+        student_section = self.soup.find('div', id='kcms-author-students')
+        if student_section:
+            student_list = student_section.find_all('li')
+            for student in student_list:
+                if student.text.strip():
+                    students.append(student.text.strip())
+        return students
+    
+    def _crawl_organization(self):
+        try:
+            organization = []
+            # 使用更精确的XPath选择器获取机构信息
+            org_elem = self.driver.find_element(By.XPATH, "/html/body/div[2]/div[1]/div[1]/div/div[3]/h3[1]/span/a")
+            if org_elem:
+                org_url = org_elem.get_attribute('href')
+                org_name = org_elem.text.strip()
+                    
+                if org_url:
+                    # 从URL中提取v参数
+                    url_params = re.search(r'v=(.*?)(?:&|$)', org_url)
+                    if url_params:
+                        org_id = url_params.group(1)
+                        print(f"成功获取所在机构URL参数: {org_id}")
+                        # 可以存储org_id用于后续使用
+                    
+                if org_name:
+                    organization = org_name
+                    print(f"成功获取所在机构名称: {org_name}")
+                else:
+                    print("机构名称为空")
+                    organization = ''
+            else:
+                print("未找到机构元素")
+                organization = ''
+                
+        except NoSuchElementException:
+            print("未找到指定XPath的机构元素")
+            organization = ''
+        except Exception as e:
+            print(f"获取所在机构时发生异常: {str(e)}")
+            organization = ''
+        return organization
+
+    def _crawl_cooperations(self):
+        cooperations = []
+        cooperations_urls = []
+        coop_section = self.soup.find('div', id='cooperation')
+        if coop_section:
+            coop_list = coop_section.find_all('li')
+            for coop in coop_list:
+                author_link = coop.find('a')
+                if author_link:
+                    author_url = author_link.get('href', '')
+                    # author_name = author_link.get_text(strip=True)
+                    # if author_name:
+                    #     cooperations.append(author_name)
+                    #     print(f"找到合作者: {author_name}")
+                    if author_url:
+                        cooperations_urls.append(author_url)
+                        url_params = re.search(r'v=(.*?)(?:&|$)', author_url)
+                        if url_params:
+                            cooperations.append(url_params.group(1))
+        # 将合作者的v参数提取
+        cooperations_v = []
+        for coop_url in cooperations_urls:
+            url_params = re.search(r'v=(.*?)(?:&|$)', coop_url)
+            if url_params:
+                cooperations_v.append(url_params.group(1))
+        return list(set(cooperations_v))
 
 class Source(CrawlBase):
     """文献来源
@@ -733,7 +1023,7 @@ class Source(CrawlBase):
     def crawl(self):
         item = {'url': self.url}
         if not self.dl:
-            print('【dl标签异常】无法获取dl标签')
+            print('【dl标签异常无法获取dl标签')
             return
         name_tag = self.dl.h3
         name = name_tag.text if name_tag else ''
@@ -1009,18 +1299,43 @@ def crawlAuthor(urls, db):
 
     length = len(urls)
     count = 0
+    max_retries = 3  # 最大重试次数
+    
     for url in urls:
-        rand = random.randint(1, 5)
-        time.sleep(rand)
-        try:
-            author = Author(url)
-            author.store(db)
-            author.close()
-            count += 1
-            print('已爬取作者页面完成：{}/{}'.format(count, length))
-        except WebDriverException as web:
-            print('【webdriver异常】' + web.msg)
-            continue
+        retries = 0
+        while retries < max_retries:
+            try:
+                # 随机延迟1-5秒
+                rand = random.uniform(1, 5)
+                time.sleep(rand)
+                
+                author = Author(url)
+                if author.soup:  # 检查是否成功初始化
+                    author.store(db)
+                    count += 1
+                    print(f'已爬取作者页面完成：{count}/{length}')
+                    break
+                else:
+                    print(f'作者页面初始化失败，正在重试 ({retries + 1}/{max_retries})')
+                    retries += 1
+                    
+            except WebDriverException as e:
+                print(f'【webdriver异常】{str(e)}')
+                retries += 1
+                if retries < max_retries:
+                    print(f'正在重试 ({retries}/{max_retries})')
+                    time.sleep(5)  # 异常后等待更长时间
+                continue
+            except Exception as e:
+                print(f'【其他异常】{str(e)}')
+                retries += 1
+                if retries < max_retries:
+                    print(f'正在重试 ({retries}/{max_retries})')
+                    time.sleep(5)
+                continue
+                
+        if retries == max_retries:
+            print(f'URL {url} 达到最大重试次数，跳过')
 
 
 def getSourceUrls(db):

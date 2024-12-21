@@ -1,0 +1,80 @@
+/* article.css */
+body {
+    font-family: 'Roboto', Arial, sans-serif;
+    background-color: #ffffff; /* 更亮的背景色 */
+    margin: 0;
+    padding: 0;
+    color: #333333; /* 更深的文本色 */
+}
+
+div {
+    max-width: 800px;
+    margin: 20px auto;
+    padding: 20px;
+    background-color: #ffffff; /* 白色背景 */
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+}
+
+h1 {
+    color: #333333; /* 更深的标题色 */
+    margin-bottom: 20px;
+    font-weight: 700; /* 加粗标题 */
+}
+
+p {
+    color: #555555; /* 更深的段落色 */
+    margin-bottom: 15px;
+}
+
+b {
+    color: #333333; /* 更深的加粗文本色 */
+}
+
+a {
+    color: #0384da; /* 蓝色链接 */
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+hr {
+    border: 0;
+    height: 1px;
+    background: #dddddd; /* 更浅的分隔线色 */
+    margin: 20px 0;
+}
+
+h2 {
+    color: #333333; /* 更深的子标题色 */
+    margin-top: 30px;
+    margin-bottom: 15px;
+    font-weight: 700; /* 加粗子标题 */
+}
+
+.button {
+    display: inline-block;
+    padding: 10px 20px;
+    background-color: #fcd00c; /* 黄色按钮 */
+    color: white;
+    text-decoration: none;
+    border-radius: 5px;
+    margin-top: 20px;
+    transition: background-color 0.3s;
+}
+
+.button:hover {
+    background-color: #c0c400; /* 深黄色按钮 */
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* 添加阴影效果 */
+    transform: scale(1.02); /* 设置悬停时的放大效果 */
+}
+.container {
+    max-width: 800px;
+    width: 100%;
+    background-color: #fff;
+    padding: 20px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+}

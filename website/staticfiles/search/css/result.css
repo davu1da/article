@@ -1,0 +1,58 @@
+/* results.css */
+.card {
+    background-color: #f9f9f9; /* 设置背景颜色 */
+    border: 1px solid #00e0c2; /* 设置边框 */
+    border-radius: 8px; /* 设置圆角 */
+    margin: 20px; /* 设置卡片之间的间隔 */
+    padding: 20px; /* 设置卡片内部的填充 */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* 设置阴影效果 */
+    transition: transform 0.2s; /* 设置过渡效果 */
+    position: relative; /* 设置相对定位 */
+}
+
+.card:hover {
+    transform: scale(1.02); /* 设置悬停时的放大效果 */
+}
+
+.card .card-link {
+    text-decoration: none; /* 去掉链接的下划线 */
+    color: inherit; /* 继承父元素的颜色 */
+    display: block; /* 设置为块级元素 */
+    width: 100%; /* 设置宽度为100% */
+    height: 100%; /* 设置高度为100% */
+    position: absolute; /* 设置绝对定位 */
+    top: 0; /* 设置顶部位置 */
+    left: 0; /* 设置左侧位置 */
+    z-index: 1; /* 设置堆叠顺序 */
+}
+
+.card .external-link {
+    text-decoration: none; /* 去掉链接的下划线 */
+    color: #007bff; /* 设置链接颜色 */
+    display: inline-block; /* 设置为行内块级元素 */
+    margin-top: 10px; /* 设置顶部间隔 */
+}
+
+.card .external-link:hover {
+    text-decoration: underline; /* 设置悬停时的下划线 */
+}
+
+.card h3 {
+    margin-top: 0; /* 去掉顶部的默认外边距 */
+    color: #2c3e50; /* 设置标题颜色 */
+}
+
+.card p {
+    color: #6c757d; /* 设置段落颜色 */
+    margin-top: 10px; /* 设置顶部间隔 */
+}
+
+.card time {
+    color: #999; /* 设置时间颜色 */
+    font-size: 0.9em; /* 设置时间字体大小 */
+}
+
+.card cite {
+    color: #555; /* 设置引用颜色 */
+    font-size: 0.9em; /* 设置引用字体大小 */
+}

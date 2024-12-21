@@ -1,0 +1,113 @@
+.card {
+    background-color: #ffffd2; /* 设置背景颜色 */
+    border: 1px solid #00e0c2; /* 设置边框 */
+    border-radius: 8px; /* 设置圆角 */
+    margin: 20px; /* 设置卡片之间的间隔 */
+    padding: 20px; /* 设置卡片内部的填充 */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* 设置阴影效果 */
+    transition: transform 0.2s; /* 设置过渡效果 */
+    position: relative; /* 设置相对定位 */
+    overflow: hidden; /* 处理溢出内容 */
+}
+
+.card:hover {
+    transform: scale(1.02); /* 设置悬停时的放大效果 */
+}
+
+.card .card-link {
+    text-decoration: none; /* 去掉链接的下划线 */
+    color: inherit; /* 继承父元素的颜色 */
+    display: block; /* 设置为块级元素 */
+    width: 100%; /* 设置宽度为100% */
+    height: auto; /* 自动调整高度 */
+}
+
+.card h3 {
+    margin-top: 0; /* 去掉顶部的默认外边距 */
+    color: #2c3e50; /* 设置标题颜色 */
+    background-color: rgb(249, 237, 105); /* 设置标题背景颜色 */
+    border: 1px solid #dee2e6; /* 设置标题边框 */
+    padding: 10px; /* 设置标题内边距 */
+    border-radius: 4px; /* 设置标题圆角 */
+    transition: transform 0.2s; /* 设置过渡效果 */
+}
+
+.card h3:hover {
+    transform: scale(1.02); /* 设置悬停时的放大效果 */
+}
+
+.card p {
+    color: #0d1b27; /* 设置段落颜色 */
+    margin-top: 10px; /* 设置顶部间隔 */
+    background-color: rgb(253, 255, 109); /* 设置段落背景颜色 */
+    border: 1px solid #dee2e6; /* 设置段落边框 */
+    padding: 10px; /* 设置段落内边距 */
+    border-radius: 4px; /* 设置段落圆角 */
+    transition: transform 0.2s; /* 设置过渡效果 */
+}
+
+.card p:hover {
+    transform: scale(1.02); /* 设置悬停时的放大效果 */
+}
+
+.card time {
+    color: #000000; /* 设置时间颜色 */
+    font-size: 0.9em; /* 设置时间字体大小 */
+    background-color: rgb(240, 138, 93); /* 设置时间背景颜色 */
+    border: 1px solid #dee2e6; /* 设置时间边框 */
+    padding: 5px; /* 设置时间内边距 */
+    border-radius: 4px; /* 设置时间圆角 */
+    display: inline-block; /* 设置为行内块级元素 */
+    transition: transform 0.2s; /* 设置过渡效果 */
+}
+
+.card time:hover {
+    transform: scale(1.02); /* 设置悬停时的放大效果 */
+}
+
+.card .external-link {
+    text-decoration: none; /* 去掉链接的下划线 */
+    color: #007bff; /* 设置链接颜色 */
+    display: inline-block; /* 设置为行内块级元素 */
+    margin-top: 10px; /* 设置顶部间隔 */
+    background-color: rgb(255, 253, 151); /* 设置链接背景颜色 */
+    border: 1px solid #dee2e6; /* 设置链接边框 */
+    padding: 5px 10px; /* 设置链接内边距 */
+    border-radius: 4px; /* 设置链接圆角 */
+    transition: transform 0.2s; /* 设置过渡效果 */
+}
+
+.card .external-link:hover {
+    text-decoration: underline; /* 设置悬停时的下划线 */
+    transform: scale(1.02); /* 设置悬停时的放大效果 */
+}
+
+.back-button {
+    display: inline-block;
+    padding: 10px 20px;
+    margin: 10px;
+    font-size: 16px;
+    color: #fff;
+    background-color: #23f807;
+    border: none;
+    border-radius: 5px;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    position: fixed; /* 使用固定定位 */
+    top: 20px; /* 距离顶部的距离 */
+    right: 20px; /* 距离左侧的距离 */
+    z-index: 1000; /* 确保按钮在其他内容之上 */
+}
+
+.back-button:hover {
+    background-color: #91fc3a;
+    border-color: #6df300; /* 改变边框颜色 */
+    color: #ffcc00; /* 改变文字颜色 */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* 添加阴影效果 */
+    transform: scale(1.02); /* 设置悬停时的放大效果 */
+}
+
+.back-button i {
+    margin-right: 5px;
+}

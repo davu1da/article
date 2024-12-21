@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/3.1/ref/settings/
 """
 
 from pathlib import Path
+import pymysql
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -30,7 +31,7 @@ ALLOWED_HOSTS = []
 
 INSTALLED_APPS = [
     'search.apps.SearchConfig',
-    # 'polls.apps.PollsConfig',  # 注释掉或删除这行
+    'polls.apps.PollsConfig',  # 注释掉或删除这行
     'crawl.apps.CrawlConfig',
     'django.contrib.admin',
     'django.contrib.auth',
@@ -38,9 +39,11 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'debug_toolbar',
 ]
 
 MIDDLEWARE = [
+    'debug_toolbar.middleware.DebugToolbarMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -73,6 +76,9 @@ WSGI_APPLICATION = 'website.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/3.1/ref/settings/#databases
 
+pymysql.version_info = (1, 4, 3, "final", 0)
+pymysql.install_as_MySQLdb()
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
@@ -81,6 +87,10 @@ DATABASES = {
         'PASSWORD': '123456',
         'HOST': '127.0.0.1',
         'PORT': '3306',
+        'OPTIONS': {
+            'charset': 'utf8mb4',
+            'use_unicode': True,
+        }
     }
 }
 
@@ -120,10 +130,17 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 
-# 开发环境下的静态文件目录
 STATICFILES_DIRS = [
-    BASE_DIR / "search/static",
+    BASE_DIR / "search" / "static",
 ]
 
-# 生产环境下collectstatic收集的静态文件存放目录
-STATIC_ROOT = BASE_DIR / 'staticfiles'  # 改成staticfiles或其他名字，避免与app中的static冲突
+STATICFILES_FINDERS = [
+    'django.contrib.staticfiles.finders.FileSystemFinder',
+    'django.contrib.staticfiles.finders.AppDirectoriesFinder',
+]
+
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+INTERNAL_IPS = [
+    '127.0.0.1',
+]

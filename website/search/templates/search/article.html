@@ -4,7 +4,9 @@
     <meta charset="UTF-8">
     <title>{{ article.title }}</title>
     {% load static %}
-    <link id="theme-style" rel="stylesheet" href="{% static 'search/css/dark.css' %}">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <!-- <link id="theme-style" rel="stylesheet" href="{% static 'search/css/dark.css' %}"> -->
+    <link rel="stylesheet" href="{% static 'search/css/article.css' %}">
 </head>
 <body>
 <div>
@@ -27,6 +29,11 @@
     {% for au in reAuthors %}
         <a href="{% url 'search:author' au.url %}">{{ au.name }}</a>
     {% endfor %}
+    <hr>
+    <!-- 添加返回按钮 -->
+    <a href="/search" class="button">返回搜索</a>
+    <!-- 添加返回上一个页面的按钮 -->
+    <a onclick="history.back()" class="button">返回上一页</a>
 </div>
 </body>
 </html>

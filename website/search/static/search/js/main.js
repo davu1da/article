@@ -216,46 +216,75 @@
 	};
 })();
 
-// Search bar related UI events
+// 搜索栏相关的UI事件处理
 (function() {
 
-	// Select elements
-	var wrapper = document.getElementById("search-wrapper");
-	var input = document.getElementById("search-input");
-	var clear = document.getElementById("search-clear");
+    // 选择DOM元素
+    var wrapper = document.getElementById("search-wrapper");  // 获取搜索栏外层容器
+    var input = document.getElementById("search-input");      // 获取搜索输入框
+    var clear = document.getElementById("search-clear");      // 获取清除按钮
+	var type = document.getElementById("search-type");    // 获取搜索类型选择框
+    // 定义回调函数
+	var originalLayout = document.body.dataset.layout;
+    /**
+     * 当搜索输入框内容变化或点击时触发结果布局显示
+     */
+    var triggerResultLayout = function() {
+        if (document.body.dataset.layout != "result")
+            document.body.dataset.layout = "result";  // 如果当前布局不是结果页，则切换为结果页布局
+    };
 
-	// Callbacks
-	var triggerResultLayout = function() {
-		if (document.body.dataset.layout != "result")
-			document.body.dataset.layout = "result";
-	};
-	var focusSearchBar = function() {
-		wrapper.dataset.focus = "true";
-	};
-	var blurSearchBar = function() {
-		wrapper.dataset.focus = "false";
-	};
-	var clearInputBox = function(event) {
-		event.preventDefault();
-		input.value = "";
-	};
-	var clearBackForwardCache = function(event) {
-		if (event.persisted && input.dataset.original)
-			input.value = input.dataset.original;
-	};
+    /**
+     * 当搜索栏获得焦点时更新其样式
+     */
+    var focusSearchBar = function() {
+        wrapper.dataset.focus = "true";  // 设置搜索栏外层容器的data-focus属性为true，表示已聚焦
+    };
 
-	// Bind listeners
-	input.addEventListener("input", triggerResultLayout);
-	input.addEventListener("click", triggerResultLayout);
-	input.addEventListener("focus", focusSearchBar);
-	input.addEventListener("blur", blurSearchBar);
-	clear.addEventListener("click", clearInputBox);
-	clear.addEventListener("mousedown", clearInputBox);
-	window.addEventListener("pageshow", clearBackForwardCache);
+    /**
+     * 当搜索栏失去焦点时更新其样式
+     */
+    var blurSearchBar = function() {
+        wrapper.dataset.focus = "false";  // 设置搜索栏外层容器的data-focus属性为false，表示失去焦点
+    };
 
-	// Auto focus if the page is originated in home layout
-	if (document.body.dataset.layout == "home" && !window.browser.ie)
-		input.focus();
+    /**
+     * 清除输入框内容并阻止默认行为
+     */
+    var clearInputBox = function(event) {
+        event.preventDefault();  // 阻止默认行为（如表单提交）
+        input.value = "";        // 清空输入框内容
+    };
+
+	var clearSearchType = function(event) {
+		type.value = "";
+	};
+    /**
+     * 清除浏览器前进后退缓存中的输入框原始值
+     */
+    var clearBackForwardCache = function(event) {
+        if (event.persisted && input.dataset.original)
+            input.value = input.dataset.original;  // 如果页面是从缓存中恢复且存在原始值，则恢复输入框的原始值
+    };
+
+    // 绑定事件监听器
+    input.addEventListener("input", triggerResultLayout);  // 输入框内容变化时触发结果布局显示
+    input.addEventListener("click", triggerResultLayout);  // 点击输入框时触发结果布局显示
+    input.addEventListener("focus", focusSearchBar);       // 输入框获得焦点时更新样式
+    input.addEventListener("blur", blurSearchBar);         // 输入框失去焦点时更新样式
+    clear.addEventListener("click", clearInputBox);       // 点击清除按钮时清空输入框
+    clear.addEventListener("mousedown", clearInputBox);   // 按下清除按钮时清空输入框
+    window.addEventListener("pageshow", clearBackForwardCache);  // 页面显示时清除缓存中的输入框原始值
+
+    // 自动聚焦到输入框（仅当页面初始布局为首页且非IE浏览器时）
+    if (document.body.dataset.layout == "home" && !window.browser.ie)
+        input.focus();  // 自动将焦点设置到输入框
+
+	document.addEventListener("click", function(event) {
+        if (event.target != type && event.target !== input && !input.contains(event.target)) {
+            document.body.dataset.layout = originalLayout;  // 点击输入框外的地方时恢复原来的布局
+        }
+    });
 })();
 
 // Censorship
@@ -317,7 +346,7 @@
 			return node.getAttribute(attr);
 
 		// Get text from child selector
-		var contents = node.querySelectorAll(selector);
+		var contents = node.querySelectorAll(selstyles/dark.cssector);
 		var texts = [];
 		for (var i = 0; i < contents.length; i++)
 			texts.push(contents[i].textContent);
@@ -771,57 +800,68 @@
 		setTimeout(inject, 4000);
 })();
 
+
+
+
+// Submit 
+
+
+
+
+
 // Search suggestions
 (function() {
 
-	// Select elements
-	var input = document.getElementById("search-input");
-	var dropdown = document.getElementById("search-suggestions");
-	var form = document.getElementById("search-form");
+	// 选择DOM元素
+	var input = document.getElementById("search-input"); // 获取搜索输入框元素
+	var dropdown = document.getElementById("search-suggestions"); // 获取建议下拉列表元素
+	var form = document.getElementById("search-form"); // 获取搜索表单元素
+	// var type = document.getElementById("search-type");
 
-	// Retrieve suggestions
+
+	// 创建缓存对象用于存储建议查询结果
 	var cache = Object.create(null);
-	var retrieveSuggestions = function(text, size, callback) {
+	var retrieveSuggestions = function(text, size, callback) { // 定义获取建议的方法
 
-		// Concat query uri and use it as the cache key
+		// 拼接查询URL，并使用其作为缓存键
 		var uri = "/suggest?size=" + size + "&q=" + encodeURIComponent(text);
 
-		// From cache
+		// 如果缓存中有数据，则直接调用回调函数返回缓存的数据
 		if (cache[uri])
 			return callback(null, cache[uri], true);
 
-		// From upstream
+		// 否则从服务器获取数据
 		window.getChunk(uri, function(err, data) {
 
-			// Parse and update cache
+			// 解析数据并更新缓存，然后调用回调函数
 			return callback(err, data ? (cache[uri] = JSON.parse(data)) : null, false);
 		});
 	};
 
-	// Render suggestion card
-	var renderSuggestionCard = function(text, before, minimum) {
+	// 渲染建议卡片
+	var renderSuggestionCard = function(text, before, minimum) { // 定义渲染建议卡片的方法
 
-		// Ignore empty query text
+		// 忽略空查询文本
 		if (text.trim().length === 0)
 			return;
 
-		// Get the top suggestions
+		// 获取顶部建议
 		retrieveSuggestions(text, 9, function(err, suggestions, fromCache) {
 
-			// Do not render empty cards or cards with few suggestions
+			// 如果有错误或建议数量不足最小值，则不渲染卡片
 			if (err || !suggestions || suggestions.length < minimum)
 				return;
 
-			// Create suggestion card
+			// 创建建议卡片div元素
 			var div = document.createElement("div");
 			div.setAttribute("class", "card");
 			div.dataset.type = "suggest";
 
-			// Create suggestion grid
+			// 创建建议网格ul元素
 			var ul = document.createElement("ul");
 			ul.setAttribute("class", "queue-in");
 
-			// Render links
+			// 渲染链接li元素
 			suggestions.forEach(function(content) {
 				var li = document.createElement("li");
 				var a = document.createElement("a");
@@ -833,30 +873,30 @@
 				ul.appendChild(li);
 			});
 
-			// Insert before the reference node
+			// 将ul插入到div中，并将div插入到指定位置之前
 			div.appendChild(ul);
 			document.querySelector("main").insertBefore(div, before || null);
 		});
 	};
 
-	// Dropdown status flags
+	// 下拉菜单状态标志
 	var selected = 0;
 	var original = "";
 
-	// Clear the dropdown
+	// 清除下拉菜单
 	var clearDropdown = function() {
 		selected = -1;
 		while (dropdown.lastChild)
 			dropdown.removeChild(dropdown.lastChild);
 	};
 
-	// Reset the active suggestion item
+	// 重置活动建议项
 	var resetActiveItem = function() {
 		for (var i = 0, l = dropdown.children.length; i < l; i++)
 			dropdown.children[i].dataset.active = i === selected ? "true" : "false";
 	};
 
-	// Get index of a suggestion item
+	// 获取建议项索引
 	var indexInDropdown = function(li) {
 		for (var i = 0, l = dropdown.children.length; i < l; i++)
 			if (dropdown.children[i] === li)
@@ -864,13 +904,13 @@
 		return -1;
 	};
 
-	// Mouse entering a suggestion item
+	// 鼠标进入建议项时触发
 	var enterDropdownItem = function() {
 		selected = indexInDropdown(this);
 		resetActiveItem();
 	};
 
-	// Mouse leaving an active item
+	// 鼠标离开活动项时触发
 	var leaveDropdownItem = function() {
 		if (selected === indexInDropdown(this)) {
 			selected = -1;
@@ -878,39 +918,40 @@
 		}
 	};
 
-	// Update search box and submit
+	// 点击建议项时触发
 	var clickDropdownItem = function() {
 		input.value = this.textContent;
+		// form.action = "/test";
 		form.submit();
 	};
 
-	// Update the search dropdown
+	// 更新搜索下拉菜单
 	var latest = 0;
 	var updateDropdown = function(text) {
 
-		// Get text from the search bar
+		// 从搜索栏获取文本
 		if (typeof(text) != "string") {
 			var q = input.value;
 			text = q.trim();
 
-			// Preserve trailing spaces
+			// 保留尾随空格
 			if (text.length > 0 && q[q.length - 1] == " ")
 				text += " ";
 		}
 
-		// Clear the dropdown on empty strings
+		// 如果字符串为空则清除下拉菜单
 		if (text.length === 0)
 			return clearDropdown();
 
-		// Get top suggestions
+		// 获取顶部建议
 		var id = ++latest % 0xFFFF;
 		retrieveSuggestions(text, 8, function(err, suggestions, fromCache) {
 
-			// Error or stale request ID
+			// 如果有错误或请求ID已过期则返回
 			if (err || id !== latest)
 				return;
 
-			// Build the dropdown
+			// 构建下拉菜单
 			var fragment = document.createDocumentFragment();
 			suggestions.forEach(function(content) {
 				var li = document.createElement("li");
@@ -926,7 +967,7 @@
 		});
 	};
 
-	// Update the search dropdown on input
+	// 在输入框输入时更新下拉菜单
 	var timeout = null;
 	input.addEventListener("input", function() {
 		original = input.value;
@@ -934,37 +975,37 @@
 		timeout = setTimeout(updateDropdown, 200);
 	});
 
-	// Update the search dropdown on focus
+	// 当输入框获得焦点时更新下拉菜单
 	input.addEventListener("focus", function() {
 		original = input.value;
 		clearDropdown();
 		updateDropdown();
 	});
 
-	// Handle arrow keys and tab
+	// 处理箭头键和Tab键
 	input.addEventListener("keydown", function(event) {
 
-		// Do nothing on empty dropdowns
+		// 如果下拉菜单为空则不做任何操作
 		var total = dropdown.children.length;
 		if (total === 0)
 			return;
 
-		// Handle by key codes
+		// 根据按键代码处理不同情况
 		switch (event.keyCode) {
-			case 9:
+			case 9: // Tab键
 				event.preventDefault();
 				if (total > 0) {
 					original = input.value = dropdown.children[selected >= 0 ? selected : 0].textContent;
 					updateDropdown();
 				}
 				break;
-			case 38:
+			case 38: // 上箭头键
 				event.preventDefault();
 				selected = selected < 0 ? total - 1 : selected - 1;
 				input.value = selected < 0 ? original : dropdown.children[selected].textContent;
 				resetActiveItem();
 				break;
-			case 40:
+			case 40: // 下箭头键
 				event.preventDefault();
 				selected = selected + 1 >= total ? -1 : selected + 1;
 				input.value = selected < 0 ? original : dropdown.children[selected].textContent;
@@ -973,7 +1014,7 @@
 		}
 	});
 
-	// Render suggestion card
+	// 渲染建议卡片
 	if (input.dataset.original && (!window.censor || !window.censor.filter("query", true))) {
 		var button = document.querySelector("div.card[data-type=next]");
 		renderSuggestionCard(input.dataset.original, button, button ? 6 : 1);
@@ -981,253 +1022,213 @@
 })();
 
 // Bibliography
-(function() {
+// (function() {
 
-	// Get the right column
-	var right = document.getElementById("right");
+// 	// 选择DOM元素
+// 	var input = document.getElementById("search-input"); // 获取搜索输入框元素
+// 	var dropdown = document.getElementById("search-suggestions"); // 获取建议下拉列表元素
+// 	var form = document.getElementById("search-form"); // 获取搜索表单元素
 
-	// Collect top sources from facts
-	var collect = function(count) {
+// 	// 创建缓存对象用于存储建议查询结果
+// 	var cache = Object.create(null);
+// 	var retrieveSuggestions = function(text, size, callback) { // 定义获取建议的方法
 
-		// Initialize candidate collector
-		var candidates = Object.create(null);
+// 		// 拼接查询URL，并使用其作为缓存键
+// 		var uri = "/suggest?size=" + size + "&q=" + encodeURIComponent(text);
 
-		// Add to collector
-		var add = function(card, section, fact, context, source, i, j, k, m, n) {
+// 		// 如果缓存中有数据，则直接调用回调函数返回缓存的数据
+// 		if (cache[uri])
+// 			return callback(null, cache[uri], true);
 
-			// Confidence level
-			var dl = fact.children[0];
-			var confidence = parseInt(dl.dataset.confidence) || 0;
-			var color = dl.dataset.color;
+// 		// 否则从服务器获取数据
+// 		window.getChunk(uri, function(err, data) {
 
-			// Calculate score
-			var score = Math.log(Math.max(confidence, 1));
-			score -= 3.0 * i;
-			score -= 1.0 * j;
-			score -= 0.1 * k;
-			score -= 0.1 * m;
-			score -= 3.0 * n;
-			score *= fact.offsetTop < 1 ? 0.5 : 1.0;
-			score *= card.dataset.folded == "true" ? 0.5 : 1.0;
+// 			// 解析数据并更新缓存，然后调用回调函数
+// 			return callback(err, data ? (cache[uri] = JSON.parse(data)) : null, false);
+// 		});
+// 	};
 
-			// Initialize candidate record
-			var id = source.getAttribute("href");
-			var candidate = candidates[id];
-			if (candidate === undefined) {
-				candidate = candidates[id] = {
-					origin: source,
-					score: 0,
-					confidence: confidence,
-					color: color,
-					edges: []
-				};
-			}
+// 	// 渲染建议卡片
+// 	var renderSuggestionCard = function(text, before, minimum) { // 定义渲染建议卡片的方法
 
-			// Update candidate
-			candidate.score += score;
-			candidate.edges.push(fact);
-			if (candidate.confidence < confidence) {
-				candidate.confidence = confidence;
-				candidate.color = color;
-			}
-		};
+// 		// 忽略空查询文本
+// 		if (text.trim().length === 0)
+// 			return;
 
-		// Super nasty DFS ;-P
-		var cards = document.querySelectorAll(".card[data-type=fact]");
-		for (var i = 0; i < cards.length; i++) {
-			var card = cards[i];
-			var sections = card.querySelectorAll("section[data-scope]");
-			for (var j = 0; j < sections.length; j++) {
-				var section = sections[j];
-				var facts = section.querySelectorAll(".fact");
-				for (var k = 0; k < facts.length; k++) {
-					var fact = facts[k];
-					var contexts = fact.querySelectorAll("ul > li");
-					for (var m = 0; m < contexts.length; m++) {
-						var context = contexts[m];
-						var sources = context.querySelectorAll("a[href]");
-						for (var n = 0; n < sources.length; n++) {
-							var source = sources[n];
-							add(card, section, fact, context, source, i, j, k, m, n);
-						}
-					}
-				}
-			}
-		}
+// 		// 获取顶部建议
+// 		retrieveSuggestions(text, 9, function(err, suggestions, fromCache) {
 
-		// Flatten candidates
-		var top = [];
-		for (var id in candidates)
-			top.push(candidates[id]);
+// 			// 如果有错误或建议数量不足最小值，则不渲染卡片
+// 			if (err || !suggestions || suggestions.length < minimum)
+// 				return;
 
-		// Sort by scores
-		top.sort(function(a, b) {
-			return b.score - a.score;
-		});
+// 			// 创建建议卡片div元素
+// 			var div = document.createElement("div");
+// 			div.setAttribute("class", "card");
+// 			div.dataset.type = "suggest";
 
-		// Limit result count
-		return top.slice(0, count);
-	};
+// 			// 创建建议网格ul元素
+// 			var ul = document.createElement("ul");
+// 			ul.setAttribute("class", "queue-in");
 
-	// Render bibliography
-	var render = function(data) {
+// 			// 渲染链接li元素
+// 			suggestions.forEach(function(content) {
+// 				var li = document.createElement("li");
+// 				var a = document.createElement("a");
+// 				a.textContent = content;
+// 				a.dataset.decoration = "search";
+// 				a.setAttribute("href", "/search?q=" + encodeURIComponent(content));
+// 				a.setAttribute("target", "_self");
+// 				li.appendChild(a);
+// 				ul.appendChild(li);
+// 			});
 
-		// Nothing to render
-		var elems = [];
-		if (data.length === 0)
-			return elems;
+// 			// 将ul插入到div中，并将div插入到指定位置之前
+// 			div.appendChild(ul);
+// 			document.querySelector("main").insertBefore(div, before || null);
+// 		});
+// 	};
 
-		// Bibliography wrapper
-		var wrapper = document.createElement("div");
-		var h4 = document.createElement("h4");
-		var ol = document.createElement("ol");
-		wrapper.setAttribute("id", "bibliography");
-		h4.setAttribute("class", "fade-in");
-		h4.textContent = i18n.bibliographyHeader;
-		ol.setAttribute("class", "queue-in");
-		wrapper.appendChild(h4);
-		wrapper.appendChild(ol);
+// 	// 下拉菜单状态标志
+// 	var selected = 0;
+// 	var original = "";
 
-		// Prepare elements
-		for (var i = 0; i < data.length; i++) {
-			var record = data[i];
-			var li = document.createElement("li");
-			var a = document.createElement("a");
-			var h5 = document.createElement("h5");
-			var div = document.createElement("div");
-			var cite = document.createElement("cite");
-			li.dataset.confidence = record.confidence;
-			li.dataset.color = record.color;
-			a.setAttribute("href", record.origin.getAttribute("href"));
-			h5.textContent = record.origin.getElementsByTagName("h5")[0].textContent;
-			cite.textContent = record.origin.getElementsByTagName("cite")[0].textContent;
-			div.appendChild(cite);
-			a.appendChild(h5);
-			a.appendChild(div);
-			li.appendChild(a);
-			ol.appendChild(li);
-			elems.push(li);
+// 	// 清除下拉菜单
+// 	var clearDropdown = function() {
+// 		selected = -1;
+// 		while (dropdown.lastChild)
+// 			dropdown.removeChild(dropdown.lastChild);
+// 	};
 
-			// Publish date
-			if (record.origin.getElementsByTagName("time")[0]) {
-				var time = document.createElement("time");
-				time.textContent = record.origin.getElementsByTagName("time")[0].textContent;
-				div.append(time);
-			}
-		}
+// 	// 重置活动建议项
+// 	var resetActiveItem = function() {
+// 		for (var i = 0, l = dropdown.children.length; i < l; i++)
+// 			dropdown.children[i].dataset.active = i === selected ? "true" : "false";
+// 	};
 
-		// Insert to DOM
-		right.appendChild(wrapper);
-		return elems;
-	};
+// 	// 获取建议项索引
+// 	var indexInDropdown = function(li) {
+// 		for (var i = 0, l = dropdown.children.length; i < l; i++)
+// 			if (dropdown.children[i] === li)
+// 				return i;
+// 		return -1;
+// 	};
 
-	// Connect to facts
-	var connect = function(data, elems) {
+// 	// 鼠标进入建议项时触发
+// 	var enterDropdownItem = function() {
+// 		selected = indexInDropdown(this);
+// 		resetActiveItem();
+// 	};
 
-		// Nothing to connect
-		if (data.length === 0 || elems.length === 0)
-			return;
+// 	// 鼠标离开活动项时触发
+// 	var leaveDropdownItem = function() {
+// 		if (selected === indexInDropdown(this)) {
+// 			selected = -1;
+// 			resetActiveItem();
+// 		}
+// 	};
 
-		// Leader line options
-		var options = {
-			color: window.getComputedStyle(document.getElementById("bibliography")).color,
-			endPlug: "disc",
-			size: 2,
-			startSocket: "left",
-			endSocket: "right",
-			hide: true
-		};
+// 	// 点击建议项时触发
+// 	var clickDropdownItem = function() {
+// 		input.value = this.textContent;
+// 		form.submit();
+// 	};
 
-		// Anchor styles
-		var styles = {
-			paddingTop: null,
-			paddingRight: null,
-			paddingBottom: null,
-			paddingLeft: null,
-			cursor: null,
-			backgroundColor: null,
-			backgroundImage: null,
-			backgroundSize: null,
-			backgroundPosition: null,
-			backgroundRepeat: null
-		};
+// 	// 更新搜索下拉菜单
+// 	var latest = 0;
+// 	var updateDropdown = function(text) {
 
-		// Draw leader lines
-		data.forEach(function(record, index) {
+// 		// 从搜索栏获取文本
+// 		if (typeof(text) != "string") {
+// 			var q = input.value;
+// 			text = q.trim();
 
-			// Reference to line instances
-			var lines = [];
-			var limit = Math.min(record.edges.length, 5);
+// 			// 保留尾随空格
+// 			if (text.length > 0 && q[q.length - 1] == " ")
+// 				text += " ";
+// 		}
 
-			// Create anchor
-			var anchor = LeaderLine.mouseHoverAnchor(elems[index], "draw", {
-				style: styles,
-				hoverStyle: styles,
-				animOptions: {
-					duration: 500
-				},
-				onSwitch: function(event) {
+// 		// 如果字符串为空则清除下拉菜单
+// 		if (text.length === 0)
+// 			return clearDropdown();
 
-					// Only respond to entering events
-					if (event.type != "mouseenter")
-						return;
+// 		// 获取顶部建议
+// 		var id = ++latest % 0xFFFF;
+// 		retrieveSuggestions(text, 8, function(err, suggestions, fromCache) {
 
-					// Update lines
-					for (var i = 0; i < limit; i++) {
-						var line = lines[i];
-						var fact = record.edges[i];
-						var section = fact.parentNode.parentNode.parentNode;
-						var card = section.parentNode.parentNode;
+// 			// 如果有错误或请求ID已过期则返回
+// 			if (err || id !== latest)
+// 				return;
 
-						// Select the best target
-						var target = card.dataset.folded == "true" ? card : (fact.offsetTop < 1 ? section : fact);
-						line.setOptions({
-							end: target,
-							dash: target !== fact
-						});
+// 			// 构建下拉菜单
+// 			var fragment = document.createDocumentFragment();
+// 			suggestions.forEach(function(content) {
+// 				var li = document.createElement("li");
+// 				li.textContent = content;
+// 				li.addEventListener("mouseenter", enterDropdownItem);
+// 				li.addEventListener("mouseleave", leaveDropdownItem);
+// 				li.addEventListener("mousedown", clickDropdownItem);
+// 				fragment.appendChild(li);
+// 			});
 
-						// Redraw the line
-						line.position();
-					}
-				}
-			});
+// 			clearDropdown();
+// 			dropdown.appendChild(fragment);
+// 		});
+// 	};
 
-			// Create lines
-			for (var i = 0; i < limit; i++)
-				lines.push(new LeaderLine(anchor, record.edges[i], options));
-		});
-	};
+// 	// 在输入框输入时更新下拉菜单
+// 	var timeout = null;
+// 	input.addEventListener("input", function() {
+// 		original = input.value;
+// 		clearTimeout(timeout);
+// 		timeout = setTimeout(updateDropdown, 200);
+// 	});
 
-	// Initialize bibliography
-	var initialized = false;
-	var init = function() {
+// 	// 当输入框获得焦点时更新下拉菜单
+// 	input.addEventListener("focus", function() {
+// 		original = input.value;
+// 		clearDropdown();
+// 		updateDropdown();
+// 	});
 
-		// Do not initialize twice
-		if (initialized)
-			return;
+// 	// 处理箭头键和Tab键
+// 	input.addEventListener("keydown", function(event) {
 
-		// Check visibility of the right column
-		if (right.offsetLeft < 1)
-			return;
+// 		// 如果下拉菜单为空则不做任何操作
+// 		var total = dropdown.children.length;
+// 		if (total === 0)
+// 			return;
 
-		// Mark as initialized and render it right now
-		initialized = true;
-		var data = collect(10);
-		var elems = render(data);
+// 		// 根据按键代码处理不同情况
+// 		switch (event.keyCode) {
+// 			case 9: // Tab键
+// 				event.preventDefault();
+// 				if (total > 0) {
+// 					original = input.value = dropdown.children[selected >= 0 ? selected : 0].textContent;
+// 					updateDropdown();
+// 				}
+// 				break;
+// 			case 38: // 上箭头键
+// 				event.preventDefault();
+// 				selected = selected < 0 ? total - 1 : selected - 1;
+// 				input.value = selected < 0 ? original : dropdown.children[selected].textContent;
+// 				resetActiveItem();
+// 				break;
+// 			case 40: // 下箭头键
+// 				event.preventDefault();
+// 				selected = selected + 1 >= total ? -1 : selected + 1;
+// 				input.value = selected < 0 ? original : dropdown.children[selected].textContent;
+// 				resetActiveItem();
+// 				break;
+// 		}
+// 	});
 
-		// Draw leader lines after a short delay
-		// This will prevent lags in SVG animations
-		setTimeout(function() {
-			connect(data, elems);
-		}, 900);
-	};
-
-	// We don't have room for the bibliography column on mobile devices
-	// But we still need to track the window size since it may start out small on desktop
-	// And... there will be more weird devices like the Mate X and Galaxy Fold
-	window.addEventListener("resize", init);
-	setTimeout(init, 100);
-})();
+// 	// 渲染建议卡片
+// 	if (input.dataset.original && (!window.censor || !window.censor.filter("query", true))) {
+// 		var button = document.querySelector("div.card[data-type=next]");
+// 		renderSuggestionCard(input.dataset.original, button, button ? 6 : 1);
+// 	}
+// })();
 
 // Ready player one
 (function() {
@@ -1278,36 +1279,106 @@
 })();
 
 // Theme Switcher
-(function() {
-	var DARK_STYLE = "/assets/styles/dark.css";
-	var LIGHT_STYLE = "/assets/styles/light.css"
-	var toggler = document.getElementById("theme-toggler");
-	var head = document.getElementsByTagName("head")[0];
-	var link = document.createElement("link");
-	link.id = "theme-style"
-	link.rel = "stylesheet";
-	if ((window.args && window.args.theme == "light") || window.localStorage.getItem("magi-theme") == "light") {
-		toggler.checked = true;
-		link.href = LIGHT_STYLE;
-	} else {
-		toggler.checked = false;
-		link.href = DARK_STYLE;
-	}
-	head.appendChild(link);
-	head.removeChild(document.getElementById("dark-theme-style"));
-	head.removeChild(document.getElementById("light-theme-style"));
+// (function() {
+// 	// 使用从HTML中获取的路径
+// 	// 定义DARK_STYLE变量，值为从window.THEME_PATHS对象中获取的DARK_STYLE路径
+// 	var DARK_STYLE = window.THEME_PATHS.DARK_STYLE;
+// 	// 定义LIGHT_STYLE变量，值为从window.THEME_PATHS对象中获取的LIGHT_STYLE路径
+// 	var LIGHT_STYLE = window.THEME_PATHS.LIGHT_STYLE;
+// 	// 获取ID为"theme-toggler"的元素，通常是一个切换按钮
+// 	var toggler = document.getElementById("theme-toggler");
+// 	// 获取文档的<head>元素，用于插入样式表链接
+// 	var head = document.getElementsByTagName("head")[0];
+// 	// 创建一个新的<link>元素，用于加载CSS样式表
+// 	var link = document.createElement("link");
+// 	// 设置<link>元素的ID为"theme-style"
+// 	link.id = "theme-style";
+// 	// 设置<link>元素的rel属性为"stylesheet"，表示这是一个样式表链接
+// 	link.rel = "stylesheet";
+// 	// 根据URL参数或localStorage中的主题设置，决定初始加载的样式表
+// 	if ((window.args && window.args.theme == "light") || window.localStorage.getItem("magi-theme") == "light") {
+// 		// 如果主题参数为"light"或localStorage中存储的主题为"light"
+// 		// 设置切换按钮为选中状态
+// 		toggler.checked = true;
+// 		// 设置<link>元素的href属性为LIGHT_STYLE路径
+// 		link.href = LIGHT_STYLE;
+// 	} else {
+// 		// 否则，设置切换按钮为未选中状态
+// 		toggler.checked = false;
+// 		// 设置<link>元素的href属性为DARK_STYLE路径
+// 		link.href = DARK_STYLE;
+// 	}
+// 	// 将<link>元素添加到<head>中，加载相应的样式表
 
-	toggler.addEventListener("click", function() {
-		var link = document.getElementById("theme-style");
-		var href = link.getAttribute("href");
-		if (href == DARK_STYLE) {
-			link.setAttribute("href", LIGHT_STYLE);
-			toggler.checked = true;
-			window.localStorage.setItem("magi-theme", "light");
-		} else {
-			link.setAttribute("href", DARK_STYLE);
-			toggler.checked = false;
-			window.localStorage.setItem("magi-theme", "dark");
-		}
-	});
+// 	head.appendChild(link);
+
+// 	// 为切换按钮添加点击事件监听器
+// 	toggler.addEventListener("click", function() {
+// 		// 获取ID为"theme-style"的<link>元素
+// 		var link = document.getElementById("theme-style");
+// 		// 获取当前<link>元素的href属性值
+// 		var href = link.getAttribute("href");
+// 		// 根据当前加载的样式表路径，切换到另一种主题
+// 		if (href == DARK_STYLE) {
+// 			// 如果当前加载的是暗色主题
+// 			// 设置<link>元素的href属性为LIGHT_STYLE路径，切换到亮色主题
+// 			link.setAttribute("href", LIGHT_STYLE);
+// 			// 设置切换按钮为选中状态
+// 			toggler.checked = true;
+// 			// 将当前主题存储到localStorage中
+// 			window.localStorage.setItem("magi-theme", "light");
+// 		} else {
+// 			// 否则，当前加载的是亮色主题
+// 			// 设置<link>元素的href属性为DARK_STYLE路径，切换到暗色主题
+// 			link.setAttribute("href", DARK_STYLE);
+// 			// 设置切换按钮为未选中状态
+// 			toggler.checked = false;
+// 			// 将当前主题存储到localStorage中
+// 			window.localStorage.setItem("magi-theme", "dark");
+// 		}
+// 		// 刷新页面以应用新的主题
+//         location.reload();
+// 	});
+// })();
+(function() {
+    var DARK_STYLE = window.THEME_PATHS.DARK_STYLE;
+    var LIGHT_STYLE = window.THEME_PATHS.LIGHT_STYLE;
+    var toggler = document.getElementById("theme-toggler");
+    var head = document.getElementsByTagName("head")[0];
+    var link = document.createElement("link");
+
+    link.id = "theme-style";
+    link.rel = "stylesheet";
+
+    // 初始设置
+    if ((window.args && window.args.theme == "light") || window.localStorage.getItem("magi-theme") == "light") {
+        toggler.checked = true;
+        link.href = LIGHT_STYLE;
+    } else {
+        toggler.checked = false;
+        link.href = DARK_STYLE;
+    }
+    head.appendChild(link);
+
+    // 切换主题事件监听器
+    toggler.addEventListener("click", function() {
+        var link = document.getElementById("theme-style");
+        var href = link.getAttribute("href");
+
+        if (href === DARK_STYLE) {
+            link.setAttribute("href", LIGHT_STYLE);
+            toggler.checked = true;
+            window.localStorage.setItem("magi-theme", "light");
+        } else {
+            link.setAttribute("href", DARK_STYLE);
+            toggler.checked = false;
+            window.localStorage.setItem("magi-theme", "dark");
+        }
+
+        // 强制重新计算样式以确保立即生效
+        setTimeout(() => {
+            document.body.style.cssText = ''; // 清除任何临时样式
+        }, 0);
+		// location.reload();
+    });
 })();

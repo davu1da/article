@@ -4,13 +4,21 @@
     <meta charset="UTF-8">
     <title>{{ source.name }}</title>
     {% load static %}
-    <link id="theme-style" rel="stylesheet" href="{% static 'search/css/dark.css' %}">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <!-- <link id="theme-style" rel="stylesheet" href="{% static 'search/css/dark.css' %}"> -->
+    <link rel="stylesheet" href="{% static 'search/css/article.css' %}">
 </head>
 <body>
+<div class="container">
 <p><b>名称：</b>{{ source.name }}</p>
 <p><b>基本信息：</b>{{ source.basic_info }}</p>
 <p><b>出版信息：</b>{{ source.publish_info }}</p>
 <p><b>评估信息：</b>{{ source.evaluation }}</p>
 <p><a href="https://kns.cnki.net/KNS8/Navi?{{ source.url }}">知网链接</a></p>
+<!-- 添加返回按钮 -->
+<a href="/search" class="button">返回搜索</a>
+<!-- 添加返回上一个页面的按钮 -->
+<a onclick="history.back()" class="button">返回上一页</a>
+</div>
 </body>
 </html>

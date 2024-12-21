@@ -11,7 +11,8 @@ def index(request):
 
 
 def search(request, keyword):
-    articles = searchArticle(g, '知识图谱')
+    print(keyword)
+    articles = searchArticle(g, keyword)
     return render(request, 'search/results.html', {'articles': articles})
 
 

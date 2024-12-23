@@ -397,7 +397,7 @@ def save_re_teacher_student(db, graph):
     print('所有师生关系存储完毕，成功存储{}个，失败{}个\n'.format(success, fail))
 
 
-def main(db, graph):
+def main_neo4j(db, graph):
     save_article(db, graph)
     save_author(db, graph)
     save_source(db, graph)

@@ -7,7 +7,6 @@ from .ogm import Article, Author, Organization, Source
 
 g = Graph("bolt://localhost:7687", auth=("neo4j", "12345678"))
 
-
 def searchArticle(g, keyword):
     """检索关键词
     :return: 关键词文章列表

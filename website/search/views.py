@@ -145,7 +145,7 @@ def set_craw(request):
                 'cmd.exe', '/c', f'call {venv_path} && python {crawler_script}',
                 '--keyword', str(keyword),
                 '--frequency', str(frequency),
-                '--frequency_unit', frequency_unit
+                '--frequency_unit', str(frequency_unit)
             ]
 
             # 执行命令行命令

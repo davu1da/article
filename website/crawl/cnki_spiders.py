@@ -14,7 +14,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import TimeoutException, WebDriverException, StaleElementReferenceException
-import build_neo4j as bn
+from .build_neo4j import *
 from py2neo import Graph, Node, Relationship
 from website.crawl.utils import *
 from urllib.parse import urlparse, parse_qs
@@ -1607,11 +1607,11 @@ def main(db):
         # urls_4 = getOrganizationUrls(db)
         # crawlOrganization(urls_4, db)
         
-        try:
-            # save_article(db, g)
-            bn.main(db, g)
-            db.close()
-        except:
-            print('存储文章节点neo4j异常')
-            return
+        # try:
+        #     # save_article(db, g)
+        #     main_neo4j(db, g)
+        #     db.close()
+        # except:
+        #     print('存储文章节点neo4j异常')
+        #     return
         

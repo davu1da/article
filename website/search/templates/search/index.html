@@ -33,14 +33,19 @@
                     </select>
 
                     <input id="search-input" type="text" autocapitalize="none"
-                           autocomplete="off" spellcheck="false" maxlength="70" title="Magi 搜索" aria-label="搜索"
+                           autocomplete="off" spellcheck="false" maxlength="200" title="Magi 搜索" aria-label="搜索"
                            placeholder="关键词 / 作者 / 机构 / 来源 " required="" data-original="">
                     <button id="search-clear" class="icon icon-clear" type="button">
                         <!-- <img src="{% static 'search/images/clear.png' %}" alt="清除"> -->
                     </button>
                     <input id="search-submit" class="icon icon-submit" type="submit" value="" title="Submit the form">
                 </div>
-                <ol id="search-suggestions"></ol>
+                <!-- <ol id="search-suggestions"></ol> -->
+                <div class="search-spacer"></div>
+                <div id="search-suggestion" class="search-suggestion">
+                    <div class="search-suggestion-title">搜索建议</div>
+                    {{ search_suggestion|linebreaks }}
+                </div>
             </div>
         </form>
         <div id="more">
@@ -48,6 +53,8 @@
                 <input type="checkbox" id="theme-toggler">
                 <label for="theme-toggler" title="切换主题"></label>
             </div>
+            <button id="redirect-button" onclick="window.location.href='http://localhost:7474/'" title="知识图谱">知识图谱界面</button>
+            <button id="craw-button" onclick="window.location.href='crawl'" title="获取信息">获取信息</button>
         </div>
     </header>
 </div>
@@ -133,7 +140,81 @@
         // Initial call to set the action when the page loads
         var initialValue = input.value.trim();
         updateFormAction(type.value, initialValue);
+
+        input.addEventListener('input', function() {
+            refreshSuggestion();
+        });
+
+        // refreshSuggestion();
     }
+</script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const searchWrapper = document.getElementById('search-wrapper');
+        const searchInput = document.getElementById('search-input');
+        
+        // 处理搜索框焦点
+        searchInput.addEventListener('focus', function() {
+            searchWrapper.setAttribute('data-focus', 'true');
+        });
+        
+        // 点击页面其他地方时关闭搜索建议
+        document.addEventListener('click', function(e) {
+            if (!searchWrapper.contains(e.target)) {
+                searchWrapper.setAttribute('data-focus', 'false');
+            }
+        });
+        
+        // 防止点击搜索建议时关闭
+        searchWrapper.addEventListener('click', function(e) {
+            e.stopPropagation();
+        });
+    });
+</script>
+<script>
+    // 当检测到input内容变化时刷新suggestion
+function refreshSuggestion() {
+    console.log('refreshSuggestion called');
+    var input = document.getElementById("search-input");
+    var suggestionDiv = document.getElementById("search-suggestion");
+    var inputValue = input.value.trim();
+
+    if (inputValue.length < 3) {
+        // 清空建议列表，但保留标题
+        suggestionDiv.innerHTML = '<div class="search-suggestion-title">搜索建议</div>';
+        return;
+    }
+
+    // 发送 AJAX 请求获取搜索建议
+    fetch(`/search/suggest/${encodeURIComponent(inputValue)}`)
+        .then(response => response.json())
+        .then(data => {
+            // 假设服务器返回的数据是一个字符串数组
+            suggestionDiv.innerHTML = '<div class="search-suggestion-title">搜索建议</div>'; // 保留标题
+            if (data && data.length > 0) {
+                var suggestionsContainer = document.createElement('div');
+                suggestionsContainer.className = 'suggestions-container';
+                data.forEach(suggestion => {
+                    var suggestionItem = document.createElement('div');
+                    suggestionItem.className = 'suggestion-item';
+                    suggestionItem.textContent = suggestion;
+                    suggestionItem.addEventListener('click', function() {
+                        input.value = suggestion;
+                        suggestionDiv.innerHTML = '<div class="search-suggestion-title">搜索建议</div>'; // 清空建议列表，但保留标题
+                        input.focus(); // 重新聚焦输入框
+                    });
+                    suggestionsContainer.appendChild(suggestionItem);
+                });
+                suggestionDiv.appendChild(suggestionsContainer);
+            } else {
+                suggestionDiv.innerHTML += '<div class="no-suggestions">没有找到建议</div>';
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching suggestions:', error);
+            suggestionDiv.innerHTML += '<div class="error">无法获取建议</div>';
+        });
+}
 </script>
 <script type="text/javascript" src="{% static 'search/js/leader-line.js' %}"></script>
 <script type="text/javascript" src="{% static 'search/js/main.js' %}"></script>

@@ -1979,3 +1979,65 @@ select {
     outline: none; /* 移除默认的聚焦轮廓 */
     box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25); /* 添加聚焦时的阴影 */
 }
+
+/* 搜索建议容器样式 */
+#search-suggestion {
+    background-color: #f9f9f9; /* 背景颜色 */
+    border: 1px solid #ddd; /* 边框 */
+    border-radius: 5px; /* 圆角 */
+    padding: 15px; /* 内边距 */
+    margin-top: 75px; /* 与搜索栏的上间距 */
+    margin-bottom: 20px; /* 与下方内容的下间距 */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* 阴影效果 */
+}
+
+/* 搜索建议标题样式 */
+.search-suggestion-title {
+    font-size: 18px; /* 字体大小 */
+    font-weight: bold; /* 字体加粗 */
+    margin-bottom: 10px; /* 标题与内容的间距 */
+    color: #333; /* 字体颜色 */
+}
+
+/* 搜索建议内容样式 */
+#search-suggestion p {
+    margin: 5px 0; /* 段落间距 */
+    color: #555; /* 字体颜色 */
+}
+
+/* 提示卡片样式 */
+.empty-card {
+    background-color: #f9f9f9; /* 背景颜色 */
+    border: 1px solid #ddd; /* 边框 */
+    border-radius: 5px; /* 圆角 */
+    padding: 15px; /* 内边距 */
+    margin-top: 20px; /* 与搜索栏的上间距 */
+    margin-bottom: 20px; /* 与下方内容的下间距 */
+    text-align: center; /* 文本居中 */
+    color: #555; /* 字体颜色 */
+}
+
+#redirect-button {
+    color: #FAFAFF;
+    background-color: #2C2C30;
+    padding: .5rem .5rem;
+    margin-bottom: 1rem; /* 添加间距 */
+    border-radius: .2rem;
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+    -ms-word-break: break-all;
+    word-break: break-all;
+    word-break: break-word;
+    -ms-hyphens: auto;
+    -moz-hyphens: auto;
+    -webkit-hyphens: auto;
+    hyphens: auto;
+    transition: transform 0.3s ease, box-shadow 0.3s ease; /* 添加过渡效果 */
+    background: linear-gradient(135deg, #2C2C30, #3A3A3E); /* 添加渐变背景 */
+    margin: 1rem; /* 设置元素与周围元素的间距 */
+}
+
+#redirect-button:hover {
+    transform: scale(1.05); /* 鼠标悬停时放大 */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* 添加阴影效果 */
+}

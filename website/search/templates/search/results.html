@@ -15,20 +15,26 @@
     <button onclick="history.back()" class="back-button">
         <i class="fas fa-arrow-left"></i> 返回上一页
     </button>
-    {% for article in articles %}
-        <div class="card" data-type="web">
-            <a href="{% url 'search:article' article.url %}" class="card-link">
-                <h3>{{ article.title }}</h3>
-                <p>
-                    <time>{{ article.date }}</time>
-                    {{ article.summary }}
-                </p>
-            </a>
-            <a href="https://kns.cnki.net/kcms/detail/detail.aspx?{{ article.url }}" class="external-link">
-                <cite>https://kns.cnki.net/kcms/detail/detail.aspx?{{ article.url }}</cite>
-            </a>
+    {% if articles %}
+        {% for article in articles %}
+            <div class="card" data-type="web">
+                <a href="{% url 'search:article' article.url %}" class="card-link">
+                    <h3>{{ article.title }}</h3>
+                    <p>
+                        <time>{{ article.date }}</time>
+                        {{ article.summary }}
+                    </p>
+                </a>
+                <a href="https://kns.cnki.net/kcms/detail/detail.aspx?{{ article.url }}" class="external-link">
+                    <cite>https://kns.cnki.net/kcms/detail/detail.aspx?{{ article.url }}</cite>
+                </a>
+            </div>
+        {% endfor %}
+    {% else %}
+        <div class="card empty-card">
+            <p>没有找到相关文章。</p>
         </div>
-    {% endfor %}
+    {% endif %}
 </div>
 </body>
 </html>

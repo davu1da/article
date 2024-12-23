@@ -144,10 +144,10 @@ class MyTestCase(unittest.TestCase):
             db = pymysql.connect(host=MYSQL_HOST, user=USERNAME, passwd=PASSWORD,
                                  db=DATABASE, port=MYSQL_PORT, charset='utf8')
             g = Graph("bolt://localhost:7687", auth=("neo4j", "12345678"))
-            main(db, g)
+            # main(db, g)
             # save_article(db, g)
             # save_author(db, g)
-            # save_source(db, g)
+            save_source(db, g)
             # save_organization(db, g)
             # save_re_article_author(db, g)
             # save_re_article_source(db, g)

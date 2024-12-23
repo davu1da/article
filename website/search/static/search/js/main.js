@@ -810,216 +810,226 @@
 
 
 // Search suggestions
-(function() {
+// (function() {
 
-	// 选择DOM元素
-	var input = document.getElementById("search-input"); // 获取搜索输入框元素
-	var dropdown = document.getElementById("search-suggestions"); // 获取建议下拉列表元素
-	var form = document.getElementById("search-form"); // 获取搜索表单元素
-	// var type = document.getElementById("search-type");
+// 	// 选择DOM元素
+// 	var input = document.getElementById("search-input"); // 获取搜索输入框元素
+// 	var dropdown = document.getElementById("search-suggestions"); // 获取建议下拉列表元素
+// 	var form = document.getElementById("search-form"); // 获取搜索表单元素
+// 	var suggest = document.getElementById("search-suggestion");
+// 	// var type = document.getElementById("search-type");
 
 
-	// 创建缓存对象用于存储建议查询结果
-	var cache = Object.create(null);
-	var retrieveSuggestions = function(text, size, callback) { // 定义获取建议的方法
+// 	// 创建缓存对象用于存储建议查询结果
+// 	var cache = Object.create(null);
+// 	var retrieveSuggestions = function(text, size, callback) { // 定义获取建议的方法
 
-		// 拼接查询URL，并使用其作为缓存键
-		var uri = "/suggest?size=" + size + "&q=" + encodeURIComponent(text);
+// 		// 拼接查询URL，并使用其作为缓存键
+// 		// var uri = "/suggest?size=" + size + "&q=" + encodeURIComponent(text);
 
-		// 如果缓存中有数据，则直接调用回调函数返回缓存的数据
-		if (cache[uri])
-			return callback(null, cache[uri], true);
+// 		var uri = "/search/suggest?size=" + size + "&q=" + encodeURIComponent(text);
 
-		// 否则从服务器获取数据
-		window.getChunk(uri, function(err, data) {
+// 		// 如果缓存中有数据，则直接调用回调函数返回缓存的数据
+// 		if (cache[uri])
+// 			return callback(null, cache[uri], true);
 
-			// 解析数据并更新缓存，然后调用回调函数
-			return callback(err, data ? (cache[uri] = JSON.parse(data)) : null, false);
-		});
-	};
+// 		// 否则从服务器获取数据
+// 		window.getChunk(uri, function(err, data) {
 
-	// 渲染建议卡片
-	var renderSuggestionCard = function(text, before, minimum) { // 定义渲染建议卡片的方法
+// 			// 解析数据并更新缓存，然后调用回调函数
+// 			return callback(err, data ? (cache[uri] = JSON.parse(data)) : null, false);
+// 		});
+// 	};
 
-		// 忽略空查询文本
-		if (text.trim().length === 0)
-			return;
+// 	// 重写建议卡片里面的内容
+// 	var renderSuggestion = function(text, before, minimum) {
 
-		// 获取顶部建议
-		retrieveSuggestions(text, 9, function(err, suggestions, fromCache) {
+// 	};
 
-			// 如果有错误或建议数量不足最小值，则不渲染卡片
-			if (err || !suggestions || suggestions.length < minimum)
-				return;
+// 	// 渲染建议卡片
+// 	// var renderSuggestionCard = function(text, before, minimum) { // 定义渲染建议卡片的方法
 
-			// 创建建议卡片div元素
-			var div = document.createElement("div");
-			div.setAttribute("class", "card");
-			div.dataset.type = "suggest";
+// 	// 	// 忽略空查询文本
+// 	// 	if (text.trim().length === 0)
+// 	// 		return;
 
-			// 创建建议网格ul元素
-			var ul = document.createElement("ul");
-			ul.setAttribute("class", "queue-in");
+// 	// 	// 获取顶部建议
+// 	// 	retrieveSuggestions(text, 9, function(err, suggestions, fromCache) {
+// 	// 		// 把suggest里面的内容写起来
 
-			// 渲染链接li元素
-			suggestions.forEach(function(content) {
-				var li = document.createElement("li");
-				var a = document.createElement("a");
-				a.textContent = content;
-				a.dataset.decoration = "search";
-				a.setAttribute("href", "/search?q=" + encodeURIComponent(content));
-				a.setAttribute("target", "_self");
-				li.appendChild(a);
-				ul.appendChild(li);
-			});
 
-			// 将ul插入到div中，并将div插入到指定位置之前
-			div.appendChild(ul);
-			document.querySelector("main").insertBefore(div, before || null);
-		});
-	};
+// 	// 		// // 如果有错误或建议数量不足最小值，则不渲染卡片
+// 	// 		// if (err || !suggestions || suggestions.length < minimum)
+// 	// 		// 	return;
 
-	// 下拉菜单状态标志
-	var selected = 0;
-	var original = "";
+// 	// 		// // 创建建议卡片div元素
+// 	// 		// var div = document.createElement("div");
+// 	// 		// div.setAttribute("class", "card");
+// 	// 		// div.dataset.type = "suggest";
 
-	// 清除下拉菜单
-	var clearDropdown = function() {
-		selected = -1;
-		while (dropdown.lastChild)
-			dropdown.removeChild(dropdown.lastChild);
-	};
+// 	// 		// // 创建建议网格ul元素
+// 	// 		// var ul = document.createElement("ul");
+// 	// 		// ul.setAttribute("class", "queue-in");
 
-	// 重置活动建议项
-	var resetActiveItem = function() {
-		for (var i = 0, l = dropdown.children.length; i < l; i++)
-			dropdown.children[i].dataset.active = i === selected ? "true" : "false";
-	};
+// 	// 		// // 渲染链接li元素
+// 	// 		// suggestions.forEach(function(content) {
+// 	// 		// 	var li = document.createElement("li");
+// 	// 		// 	var a = document.createElement("a");
+// 	// 		// 	a.textContent = content;
+// 	// 		// 	a.dataset.decoration = "search";
+// 	// 		// 	a.setAttribute("href", "/search?q=" + encodeURIComponent(content));
+// 	// 		// 	a.setAttribute("target", "_self");
+// 	// 		// 	li.appendChild(a);
+// 	// 		// 	ul.appendChild(li);
+// 	// 		// });
 
-	// 获取建议项索引
-	var indexInDropdown = function(li) {
-		for (var i = 0, l = dropdown.children.length; i < l; i++)
-			if (dropdown.children[i] === li)
-				return i;
-		return -1;
-	};
+// 	// 		// // 将ul插入到div中，并将div插入到指定位置之前
+// 	// 		// div.appendChild(ul);
+// 	// 		// document.querySelector("main").insertBefore(div, before || null);
+// 	// 	});
+// 	// };
 
-	// 鼠标进入建议项时触发
-	var enterDropdownItem = function() {
-		selected = indexInDropdown(this);
-		resetActiveItem();
-	};
+// 	// 下拉菜单状态标志
+// 	var selected = 0;
+// 	var original = "";
 
-	// 鼠标离开活动项时触发
-	var leaveDropdownItem = function() {
-		if (selected === indexInDropdown(this)) {
-			selected = -1;
-			resetActiveItem();
-		}
-	};
+// 	// 清除下拉菜单
+// 	var clearDropdown = function() {
+// 		selected = -1;
+// 		while (dropdown.lastChild)
+// 			dropdown.removeChild(dropdown.lastChild);
+// 	};
 
-	// 点击建议项时触发
-	var clickDropdownItem = function() {
-		input.value = this.textContent;
-		// form.action = "/test";
-		form.submit();
-	};
+// 	// 重置活动建议项
+// 	var resetActiveItem = function() {
+// 		for (var i = 0, l = dropdown.children.length; i < l; i++)
+// 			dropdown.children[i].dataset.active = i === selected ? "true" : "false";
+// 	};
 
-	// 更新搜索下拉菜单
-	var latest = 0;
-	var updateDropdown = function(text) {
+// 	// 获取建议项索引
+// 	var indexInDropdown = function(li) {
+// 		for (var i = 0, l = dropdown.children.length; i < l; i++)
+// 			if (dropdown.children[i] === li)
+// 				return i;
+// 		return -1;
+// 	};
 
-		// 从搜索栏获取文本
-		if (typeof(text) != "string") {
-			var q = input.value;
-			text = q.trim();
+// 	// 鼠标进入建议项时触发
+// 	var enterDropdownItem = function() {
+// 		selected = indexInDropdown(this);
+// 		resetActiveItem();
+// 	};
 
-			// 保留尾随空格
-			if (text.length > 0 && q[q.length - 1] == " ")
-				text += " ";
-		}
+// 	// 鼠标离开活动项时触发
+// 	var leaveDropdownItem = function() {
+// 		if (selected === indexInDropdown(this)) {
+// 			selected = -1;
+// 			resetActiveItem();
+// 		}
+// 	};
 
-		// 如果字符串为空则清除下拉菜单
-		if (text.length === 0)
-			return clearDropdown();
+// 	// 点击建议项时触发
+// 	var clickDropdownItem = function() {
+// 		input.value = this.textContent;
+// 		// form.action = "/test";
+// 		form.submit();
+// 	};
 
-		// 获取顶部建议
-		var id = ++latest % 0xFFFF;
-		retrieveSuggestions(text, 8, function(err, suggestions, fromCache) {
+// 	// 更新搜索下拉菜单
+// 	var latest = 0;
+// 	var updateDropdown = function(text) {
 
-			// 如果有错误或请求ID已过期则返回
-			if (err || id !== latest)
-				return;
+// 		// 从搜索栏获取文本
+// 		if (typeof(text) != "string") {
+// 			var q = input.value;
+// 			text = q.trim();
 
-			// 构建下拉菜单
-			var fragment = document.createDocumentFragment();
-			suggestions.forEach(function(content) {
-				var li = document.createElement("li");
-				li.textContent = content;
-				li.addEventListener("mouseenter", enterDropdownItem);
-				li.addEventListener("mouseleave", leaveDropdownItem);
-				li.addEventListener("mousedown", clickDropdownItem);
-				fragment.appendChild(li);
-			});
+// 			// 保留尾随空格
+// 			if (text.length > 0 && q[q.length - 1] == " ")
+// 				text += " ";
+// 		}
 
-			clearDropdown();
-			dropdown.appendChild(fragment);
-		});
-	};
+// 		// 如果字符串为空则清除下拉菜单
+// 		if (text.length === 0)
+// 			return clearDropdown();
 
-	// 在输入框输入时更新下拉菜单
-	var timeout = null;
-	input.addEventListener("input", function() {
-		original = input.value;
-		clearTimeout(timeout);
-		timeout = setTimeout(updateDropdown, 200);
-	});
+// 		// 获取顶部建议
+// 		var id = ++latest % 0xFFFF;
+// 		retrieveSuggestions(text, 8, function(err, suggestions, fromCache) {
 
-	// 当输入框获得焦点时更新下拉菜单
-	input.addEventListener("focus", function() {
-		original = input.value;
-		clearDropdown();
-		updateDropdown();
-	});
+// 			// 如果有错误或请求ID已过期则返回
+// 			if (err || id !== latest)
+// 				return;
 
-	// 处理箭头键和Tab键
-	input.addEventListener("keydown", function(event) {
+// 			// 构建下拉菜单
+// 			var fragment = document.createDocumentFragment();
+// 			suggestions.forEach(function(content) {
+// 				var li = document.createElement("li");
+// 				li.textContent = content;
+// 				li.addEventListener("mouseenter", enterDropdownItem);
+// 				li.addEventListener("mouseleave", leaveDropdownItem);
+// 				li.addEventListener("mousedown", clickDropdownItem);
+// 				fragment.appendChild(li);
+// 			});
 
-		// 如果下拉菜单为空则不做任何操作
-		var total = dropdown.children.length;
-		if (total === 0)
-			return;
+// 			clearDropdown();
+// 			dropdown.appendChild(fragment);
+// 		});
+// 	};
 
-		// 根据按键代码处理不同情况
-		switch (event.keyCode) {
-			case 9: // Tab键
-				event.preventDefault();
-				if (total > 0) {
-					original = input.value = dropdown.children[selected >= 0 ? selected : 0].textContent;
-					updateDropdown();
-				}
-				break;
-			case 38: // 上箭头键
-				event.preventDefault();
-				selected = selected < 0 ? total - 1 : selected - 1;
-				input.value = selected < 0 ? original : dropdown.children[selected].textContent;
-				resetActiveItem();
-				break;
-			case 40: // 下箭头键
-				event.preventDefault();
-				selected = selected + 1 >= total ? -1 : selected + 1;
-				input.value = selected < 0 ? original : dropdown.children[selected].textContent;
-				resetActiveItem();
-				break;
-		}
-	});
+// 	// 在输入框输入时更新下拉菜单
+// 	var timeout = null;
+// 	input.addEventListener("input", function() {
+// 		original = input.value;
+// 		clearTimeout(timeout);
+// 		timeout = setTimeout(updateDropdown, 200);
+// 	});
 
-	// 渲染建议卡片
-	if (input.dataset.original && (!window.censor || !window.censor.filter("query", true))) {
-		var button = document.querySelector("div.card[data-type=next]");
-		renderSuggestionCard(input.dataset.original, button, button ? 6 : 1);
-	}
-})();
+// 	// 当输入框获得焦点时更新下拉菜单
+// 	input.addEventListener("focus", function() {
+// 		original = input.value;
+// 		clearDropdown();
+// 		updateDropdown();
+// 	});
+
+// 	// 处理箭头键和Tab键
+// 	input.addEventListener("keydown", function(event) {
+
+// 		// 如果下拉菜单为空则不做任何操作
+// 		var total = dropdown.children.length;
+// 		if (total === 0)
+// 			return;
+
+// 		// 根据按键代码处理不同情况
+// 		switch (event.keyCode) {
+// 			case 9: // Tab键
+// 				event.preventDefault();
+// 				if (total > 0) {
+// 					original = input.value = dropdown.children[selected >= 0 ? selected : 0].textContent;
+// 					updateDropdown();
+// 				}
+// 				break;
+// 			case 38: // 上箭头键
+// 				event.preventDefault();
+// 				selected = selected < 0 ? total - 1 : selected - 1;
+// 				input.value = selected < 0 ? original : dropdown.children[selected].textContent;
+// 				resetActiveItem();
+// 				break;
+// 			case 40: // 下箭头键
+// 				event.preventDefault();
+// 				selected = selected + 1 >= total ? -1 : selected + 1;
+// 				input.value = selected < 0 ? original : dropdown.children[selected].textContent;
+// 				resetActiveItem();
+// 				break;
+// 		}
+// 	});
+
+// 	// 渲染建议卡片
+// 	if (input.dataset.original && (!window.censor || !window.censor.filter("query", true))) {
+// 		var button = document.querySelector("div.card[data-type=next]");
+// 		renderSuggestionCard(input.dataset.original, button, button ? 6 : 1);
+// 	}
+// })();
 
 // Bibliography
 // (function() {

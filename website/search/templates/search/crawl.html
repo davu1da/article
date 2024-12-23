@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+    <title>爬取设置</title>
+    <meta charset="utf-8">
+    {% load static %}
+    <link rel="stylesheet" type="text/css" href="{% static 'search/css/crawl.css' %}">
+    <script>
+        function setCrawSettings() {
+            const keyword = document.getElementById('keyword').value;
+            const frequency = document.getElementById('frequency').value;
+            const frequencyUnit = document.getElementById('frequency-unit').value;
+
+            if (!keyword || !frequency) {
+                alert('请输入关键词和爬取频率');
+                return;
+            }
+
+            const data = {
+                keyword: keyword,
+                frequency: frequency,
+                frequencyUnit: frequencyUnit
+            };
+
+            fetch('setcraw/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(`文章获取程序将在每${frequency} ${frequencyUnit}获取一次关键词为"${keyword}"的信息`);
+                } else {
+                    alert('设置失败，请重试');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('设置失败，请重试');
+            });
+        }
+    </script>
+</head>
+<body>
+    <div class="card">
+        <header>
+            <h1>爬取设置</h1>
+        </header>
+        <section>
+            <main>
+                <form id="craw-form">
+                    <label for="keyword">关键词:</label>
+                    <input type="text" id="keyword" name="keyword" required>
+                    <label for="frequency">爬取频率:</label>
+                    <input type="number" id="frequency" name="frequency" min="1" required>
+                    <label for="frequency-unit">频率单位:</label>
+                    <select id="frequency-unit" name="frequency-unit">
+                        <option value="minutes">分钟</option>
+                        <option value="days">天</option>
+                        <option value="hours">小时</option>
+                    </select>
+                    <div class="gradient-border">
+                        <div class="button" onclick="setCrawSettings()">
+                            <span class="text">设置</span>
+                        </div>
+                    </div>
+                </form>
+            </main>
+        </section>
+    </div>
+</body>
+</html>

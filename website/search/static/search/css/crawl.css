@@ -1,0 +1,205 @@
+/* 基本卡片样式 */
+.card {
+    background-color: #FFFFFF; /* 明亮的背景颜色 */
+    border-radius: 15px; /* 圆角 */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* 浮动阴影 */
+    padding: 30px; /* 增加内边距 */
+    margin: 30px; /* 增加外边距 */
+    max-width: 600px; /* 增加最大宽度 */
+    margin: 0 auto; /* 水平居中 */
+    transition: box-shadow 0.3s ease; /* 阴影过渡效果 */
+}
+
+/* 鼠标悬停时增加阴影效果 */
+.card:hover {
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+}
+
+/* 标题样式 */
+.card h1 {
+    font-size: 32px; /* 增加字体大小 */
+    margin-bottom: 20px; /* 增加底部外边距 */
+    color: #333333; /* 深色标题 */
+    text-align: center; /* 居中对齐 */
+}
+
+/* 表单样式 */
+.card form {
+    display: flex;
+    flex-direction: column;
+    align-items: center; /* 居中对齐表单元素 */
+}
+
+.card label {
+    margin-bottom: 10px; /* 增加底部外边距 */
+    font-weight: bold;
+    color: #555555; /* 稍浅的标题颜色 */
+    font-size: 18px; /* 增加字体大小 */
+}
+
+.card input, .card select {
+    padding: 15px; /* 增加内边距 */
+    margin-bottom: 20px; /* 增加底部外边距 */
+    border: 2px solid #CCCCCC; /* 增加边框宽度 */
+    border-radius: 10px; /* 增加圆角 */
+    font-size: 18px; /* 增加字体大小 */
+    width: 100%; /* 使输入框和选择框宽度占满 */
+    max-width: 400px; /* 设置最大宽度 */
+    box-sizing: border-box; /* 确保内边距和边框包含在宽度内 */
+}
+
+.card select {
+    appearance: none; /* 移除默认样式 */
+    -webkit-appearance: none; /* 移除WebKit默认样式 */
+    -moz-appearance: none; /* 移除Mozilla默认样式 */
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4 5"><path fill="#555555" d="M2 0L0 2h4zm0 5L0 3h4z"/></svg>');
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    background-size: 10px 10px;
+    padding-right: 30px; /* 为箭头留出空间 */
+}
+
+.card button {
+    padding: 15px 30px; /* 增加内边距 */
+    background-color: #007BFF; /* 蓝色按钮 */
+    color: #FFFFFF; /* 白色文字 */
+    border: none;
+    border-radius: 10px; /* 增加圆角 */
+    cursor: pointer;
+    font-size: 18px; /* 增加字体大小 */
+    transition: background-color 0.3s ease;
+    width: 200px; /* 设置按钮宽度 */
+}
+
+.card button:hover {
+    background-color: #0056b3; /* 悬停时更深的蓝色 */
+}
+
+/* 按钮样式 */
+.button-wrapper {
+    margin-top: 20px; /* 增加顶部外边距 */
+}
+
+.button {
+    position: relative;
+    text-transform: uppercase;
+    color: #fff;
+    border: none;
+    padding: 15px 30px; /* 增加内边距 */
+    z-index: 1;
+    /* border-radius: 10px; 增加圆角 */
+    transition: background-color 0.3s ease;
+}
+
+ /* .button::before {
+    position: absolute;
+    border-bottom: solid 3px;
+    content: '';
+    min-height: 10px;
+    min-width: 100px;
+    z-index: 200;
+    left: 50%;
+    transform: translateX(-50%);
+    top: 60%;
+    opacity: 1;
+    transition-duration: 0.5s;
+}
+
+.button::after {
+    pointer-events: none;
+    position: absolute;
+    content: '';
+    width: 600px;
+    height: 160px;
+    border-radius: 50%;
+    background-color: #555555;
+    top: -120%;
+    left: -30%;
+    z-index: -10;
+    transition-duration: 2s;
+} */
+
+.button:hover::after {
+    width: 0;
+    height: 50px;
+}
+
+.button:hover::before {
+    opacity: 0;
+}
+
+.button:hover {
+    transform: scale(1.1); /* 放大按钮 */
+    transition: transform 0.3s ease; /* 添加过渡效果 */
+}
+
+/* 清除默认样式 */
+body {
+    background: #93d8fa;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+}
+
+/* 移除不必要的样式 */
+p, .half {
+    display: none; /* 隐藏不必要的元素 */
+}
+
+@import url('https://fonts.googleapis.com/css?family=Raleway:200');
+
+/* html, body {
+  height: 100%;
+}
+body {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  background: #1D1F20;
+} */
+/* #box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100px;
+  height: 50px;
+  color: white;
+  font-family: 'Raleway';
+  font-size: 2.5rem;
+} */
+.gradient-border {
+    --borderWidth: 3px;
+    background: #5abcf1;
+    position: relative;
+    border-radius: var(--borderWidth);
+  }
+.gradient-border:after {
+    content: '';
+    position: absolute;
+    top: calc(-1 * var(--borderWidth));
+    left: calc(-1 * var(--borderWidth));
+    height: calc(100% + var(--borderWidth) * 2);
+    width: calc(100% + var(--borderWidth) * 2);
+    background: linear-gradient(60deg, #f79533, #f37055, #ef4e7b, #a166ab, #5073b8, #1098ad, #07b39b, #6fba82);
+    border-radius: calc(2 * var(--borderWidth));
+    z-index: -1;
+    animation: animatedgradient 3s ease alternate infinite;
+    background-size: 300% 300%;
+  }
+  
+  
+  @keyframes animatedgradient {
+      0% {
+          background-position: 0% 50%;
+      }
+      50% {
+          background-position: 100% 50%;
+      }
+      100% {
+          background-position: 0% 50%;
+      }
+  }
+  

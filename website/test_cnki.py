@@ -24,10 +24,10 @@ ARTICLE_URL = "dbcode=CAPJ&dbname=CAPJDAY&filename=ZZDZ20210513000"
 AUTHOR_URL = "v=XRdBcB-NO4TLPjAaOfWrz8d9fBEMGihtESuWihajiHhu68VhIlX_kYo03z91q04bsXXHzgRtf3-agm7aLo01QxBPnhwQONVMtKPjLnMcTiVuTENatSsZ8Q==&uniplatform=NZKPT&language=CHS"
 # AUTHOR_URL =  "v=XRdBcB-NO4SSJMGdxrveN307Tkpy5J4EiHnidfOBWimMbUneYr6fsYlfs0-n4BUKPXcO9I4EsV3M7GyuEfn08TS6udT0xmAZ22KOVxpMYSazeVyzevYSGYnXBm7fq-GH&uniplatform=NZKPT&language=CHS"
 # AUTHOR_URL = "v=Ep7N7zfewyReP0ElszwmahzjmZPdV_ulkMlPm-aaVGgR0OJu6w8YJlMtCEfH20D-oRbRBfBeHa2cAdpQgvn4TEnrhi9hqIlR553genE22v5geN-D5-YT1g==&uniplatform=NZKPT&language=CHS"
-SOURCE_URL = "DBCode=cjfq&BaseID=ZZDZ"
-# ORGANIZATION_URL = "sfield=in&skey=河北大学&code=0106010"
-ORGANIZATION_URL = "sfield=in&skey=北京大学"
-# ORGANIZATION_URL = "sfield=in&skey=武汉工程大学&code=0202782"
+SOURCE_URL = "p=BLSfNGz_pPK0hDVpwZodF7k9H5IvjKA6ilEh_FvVKt3lW_cytr01a8yVIVLwNuTxaBRDn_v36wDlo-Z9PI6QleNwdCD4K-RUtavNXPIcuHs=&uniplatform=NZKPT"
+ORGANIZATION_URL = "v=oGsGy-nFbJSa85kUYkcB0I9CjfvQc8ChKT6isGx7Nsslnmf4pCH_QQwmIU44u4rJdN9ML-vo1lntyXJSZeBop-hVhAFg_tnIjhaNHRo6cWnJDyb5snjT8iz4cm3MwctMxmtjO6nwghmS1UdRi8a80duXOE4vAT3Nk9NKHCcj3e-nY9WvHPmyi-TrZbbO5nPRuYFtFUvEz8ZmB15kGJTnOAtaHxN0pK-q6k6Y2Duon2vJbOz4sMY98mglK6l6tVaDlk4a7iD1HKSx7FGZGOs_WYAodErmLoSRHJNiIqBKzrkAx-H5e9jhiVYP_Q6H6O54&uniplatform=NZKPT&language=CHS"
+
+
 
 MYSQL_HOST = "127.0.0.1"
 MYSQL_PORT = 3306
@@ -131,7 +131,7 @@ class MyTestCase(unittest.TestCase):
         try:
             k = KeyList()
             k.input_keyword(key)
-            # k.crawl_qikan()
+            k.crawl_qikan()
             k.crawl_lunwen()
             flag = True
         except Exception as e:

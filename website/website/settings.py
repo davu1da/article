@@ -128,6 +128,8 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/3.1/howto/static-files/
 
+KIMI_API_KEY: str = "sk-Jr3N5Y3nNvBcuKiVpt5dKmIQHc6uTSPhDYexn0H2Gn7ekjyf"
+
 STATIC_URL = '/static/'
 
 STATICFILES_DIRS = [

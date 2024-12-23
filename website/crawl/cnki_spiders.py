@@ -13,8 +13,11 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
+from selenium.common.exceptions import TimeoutException, WebDriverException, StaleElementReferenceException
+
 
 from website.crawl.utils import *
+from urllib.parse import urlparse, parse_qs
 
 MYSQL_HOST = "127.0.0.1"
 MYSQL_PORT = 3306
@@ -37,7 +40,20 @@ class KeyList:
     """
 
     def __init__(self):
-        self.driver = webdriver.Chrome()
+        # 使用Selenium
+        chrome_options = Options()
+        # chrome_options.add_argument('--headless')  # 无界面模式
+        chrome_options.add_argument('--disable-gpu')
+        chrome_options.add_argument('--no-sandbox')
+        chrome_options.add_argument('--disable-dev-shm-usage')
+        # 添加以下选项来模拟真实浏览器
+        chrome_options.add_argument('--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36')
+        chrome_options.add_argument('--disable-blink-features=AutomationControlled')
+        chrome_options.add_experimental_option('excludeSwitches', ['enable-automation'])
+        chrome_options.add_experimental_option('useAutomationExtension', False)
+        
+        self.driver = webdriver.Chrome(options=chrome_options)
+        # self.driver = webdriver.Chrome()
         self.driver.get("https://www.cnki.net/")
         print("全局等待时间设置3秒")
         self.driver.implicitly_wait(3)
@@ -54,7 +70,10 @@ class KeyList:
     #     key_input = self.driver.find_element_by_id("txt_SearchText")
     #     key_input.send_keys(keyword)
     #     key_input.send_keys(Keys.RETURN)
-    
+    def extract_url_param(self, url, param_name):
+        match = re.search(fr'{param_name}=(.*?)(?:&|$)', url)
+        return match.group(1) if match else None
+
     def input_keyword(self, keyword):
         """输入关键词"""
         try:
@@ -100,7 +119,7 @@ class KeyList:
             WebDriverWait(self.driver, 10).until(
                 EC.element_to_be_clickable((By.XPATH, "/html/body/div[2]/div[1]/div[2]/div/div/ul/li[1]/a"))
             ).click()
-            print("点击期")
+            print("点击期刊")
             
             # 等待期刊列表加载
             WebDriverWait(self.driver, 10).until(
@@ -129,9 +148,9 @@ class KeyList:
                         try:
                             # 在处理每行之前确保元素仍然可交互
                             WebDriverWait(self.driver, 5).until(
-                                EC.visibility_of(row)
+                            EC.visibility_of(row)
                             )
-                            
+
                             # 在同一行内快速获取所需的所有数据
                             title_element = row.find_element_by_css_selector(".name a")
                             source_element = row.find_element_by_css_selector(".source a")
@@ -139,26 +158,36 @@ class KeyList:
                             
                             # 获取所需的属性
                             article_href = title_element.get_attribute('href')
+                            article_name = title_element.text
+                            
                             source_href = source_element.get_attribute('href')
+                            source_name = source_element.text
                             publish_date = date_element.text
                             
-                            # 提取URL参数
-                            v_param = re.search(r'v=(.*?)(?:&|$)', article_href)
-                            p_param = re.search(r'p=(.*?)(?:&|$)', source_href)
                             
-                            if v_param and p_param:
-                                url_article = v_param.group(1)
-                                url_source = p_param.group(1)
+                            
+                            # 提取URL参数
+                            v_param_value = self.extract_url_param(article_href, 'v')
+                            p_param_value = self.extract_url_param(source_href, 'p')
+
+                            if v_param_value and p_param_value:
+                                url_article = f'v={v_param_value}'
+                                url_source = f'p={p_param_value}'
                                 
                                 # 存储到Redis
+                                self.r.set(article_name, url_article)
+                                self.r.set(source_name, url_source)
                                 self.r.set(url_article, publish_date)
                                 
-                                # 存储��MySQL
+                                # 存储MySQL
                                 sql_re_as = "insert into re_article_source(url_article,url_source) " \
                                           "values('{}','{}')".format(url_article, url_source)
                                 self._execute_sql(sql_re_as)
                                 count += 1
-                                
+                        # except StaleElementReferenceException:
+                        #     # 如果元素过时，重新获取所有行元素
+                        #     rows = self.driver.find_elements_by_css_selector(".result-table-list tbody tr")
+                        #     continue
                         except Exception as row_e:
                             print(f"处理单行数据时出现异常: {str(row_e)}")
                             continue
@@ -217,9 +246,9 @@ class KeyList:
                     for row in rows:
                         try:
                             # 在处理每行之前确保元素仍然可交互
-                            WebDriverWait(self.driver, 5).until(
-                                EC.visibility_of(row)
-                            )
+                            # WebDriverWait(self.driver, 5).until(
+                            #     EC.visibility_of(row)
+                            # )
                             
                             # 在同一行内快速获取所需的所有数据
                             title_element = row.find_element_by_css_selector(".name a")
@@ -227,15 +256,22 @@ class KeyList:
                             
                             # 获取所需的属性
                             article_href = title_element.get_attribute('href')
+                            article_name = title_element.text
                             source_href = unit_element.get_attribute('href')
+                            source_name = unit_element.text
                             
                             # 提取URL参数
-                            v_param = re.search(r'v=(.*?)(?:&|$)', article_href)
-                            p_param = re.search(r'p=(.*?)(?:&|$)', source_href)
-                            
-                            if v_param and p_param:
-                                url_article = v_param.group(1)
-                                url_source = p_param.group(1)
+                            v_param_value = self.extract_url_param(article_href, 'v')
+                            p_param_value = self.extract_url_param(source_href, 'p')
+
+                            if v_param_value and p_param_value:
+                                url_article = f'v={v_param_value}'
+                                url_source = f'p={p_param_value}'
+                                
+                                # 存储到Redis
+                                self.r.set(article_name, url_article)
+                                self.r.set(source_name, url_source)
+                                
                                 
                                 # 存储到MySQL
                                 sql_re_as = "insert into re_article_source(url_article,url_source) " \
@@ -406,7 +442,7 @@ class Article(CrawlBase):
         try:
             # 使用Selenium
             chrome_options = Options()
-            chrome_options.add_argument('--headless')  # 无界面模式
+            # chrome_options.add_argument('--headless')  # 无界面模式
             chrome_options.add_argument('--disable-gpu')
             chrome_options.add_argument('--no-sandbox')
             chrome_options.add_argument('--disable-dev-shm-usage')
@@ -418,17 +454,23 @@ class Article(CrawlBase):
             chrome_options.add_experimental_option('useAutomationExtension', False)
             
             self.driver = webdriver.Chrome(options=chrome_options)
-            self.driver.get("https://kns.cnki.net/kcms/detail/detail.aspx?" + url)
+            if "dbcode" in url or "dbname" in url or "filename" in url:
+                # print("原版知网：" + url)
+                self.driver.get("https://kns.cnki.net/kcms/detail/detail.aspx?" + url)
+            else:
+                # print("新版知网：" + url)
+                self.driver.get("https://kns.cnki.net/kcms2/article/abstract?" + url)
+
             
             # 等待页面加载
             WebDriverWait(self.driver, 10).until(
-                EC.presence_of_element_located((By.CLASS_NAME, "doc-top"))
+                EC.presence_of_element_located((By.CLASS_NAME, "doc"))
             )
             
             # 获取渲染后的页面内容
             page_source = self.driver.page_source
             soup = BeautifulSoup(page_source, 'html5lib')
-            self.doc = soup.find('div', class_="doc-top")
+            self.doc = soup.find('div', class_="doc")
             
         except Exception as e:
             print(f"初始化Article异常: {str(e)}")
@@ -738,12 +780,31 @@ class Author(CrawlBase):
             major = item['major']
             sum_publish = item['sum_publish']
             sum_download = item['sum_download']
-            
-            sql_a = """INSERT INTO author(url, name, major, sum_publish, sum_download) 
-                    VALUES (%s, %s, %s, %s, %s)"""
+
+            # 存储文章作者关系
+            url_author = url
+            status = 0
+            for article in item['articles']:
+                article_url = article
+
+                sql_aa = """INSERT INTO re_article_author(url_article, url_author, status) 
+                        VALUES (%s, %s, %s)"""
+                try:
+                    curr = db.cursor()
+                    curr.execute(sql_aa, (article_url, url_author, status))
+                    db.commit()
+                except pymysql.IntegrityError:
+                    print(f"文章作者关系已存在: {article_url} - {url}")
+                except Exception as e:
+                    print(f"插入文章作者关系异常: {str(e)}")
+                    db.rollback()
+
+
+
+            sql_a = "INSERT INTO author(url, name, major, sum_publish, sum_download) " \
+                    "VALUES ('{}','{}','{}','{}','{}')".format(url, name, major, sum_publish, sum_download)
             try:
-                curr = db.cursor()
-                curr.execute(sql_a, (url, name, major, sum_publish, sum_download))
+                executeSql(db, sql_a)
                 db.commit()
             except pymysql.IntegrityError:
                 print(f"作者记录已存在: {url}")
@@ -751,20 +812,7 @@ class Author(CrawlBase):
                 print(f"插入作者记录异常: {str(e)}")
                 db.rollback()
                 
-            # 存储文章作者关系
-            for article in item['articles']:
-                article_url = article['url']
-                sql_aa = """INSERT INTO re_article_author(url_article, url_author) 
-                        VALUES (%s, %s)"""
-                try:
-                    curr = db.cursor()
-                    curr.execute(sql_aa, (article_url, url))
-                    db.commit()
-                except pymysql.IntegrityError:
-                    print(f"文章作者关系已存在: {article_url} - {url}")
-                except Exception as e:
-                    print(f"插入文章作者关系异常: {str(e)}")
-                    db.rollback()
+
                 
         except Exception as e:
             print(f"存储作者数据异常: {str(e)}")
@@ -876,10 +924,13 @@ class Author(CrawlBase):
                             for span in tutor_spans:
                                 tutor_url = span.find('a')
                                 tutor_name = span.get_text(strip=True)
-                                if tutor_url and tutor_name:
+                                if tutor_name:
                                     teachers.append(tutor_name)
-                                    teachers_urls.append(tutor_url)
                                     print(f"找到导师: {tutor_name}")
+                                if tutor_url:
+                                    teachers_urls.append(tutor_url)
+                                    print(f"找到导师URL: {tutor_url}")
+
                         else:
                             print("未找到导师列表容器(div#tuhor)")
                     else:
@@ -901,7 +952,7 @@ class Author(CrawlBase):
         else:
             print(f"找到{len(teachers_urls)}位导师URL")
             print(teachers_urls)
-        return teachers_urls
+        return teachers
     
     def _crawl_students(self):
         students = []
@@ -984,6 +1035,7 @@ class Source(CrawlBase):
     def __init__(self, url):
         super().__init__()
         self.url = url
+        self.r = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, decode_responses=True)
         # newurl = 'https://kns.cnki.net/KNS8/Navi?' + url
         # headers = {
         #     "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.93 Safari/537.36"}
@@ -992,18 +1044,34 @@ class Source(CrawlBase):
         # # 通过分析页面信息，要爬取的信息都存在dl标签中
         # self.dl = soup.dl
         try:
+            # 使用Selenium
             chrome_options = Options()
-            chrome_options.add_argument('--headless')
+            # chrome_options.add_argument('--headless')  # 无界面模式
             chrome_options.add_argument('--disable-gpu')
-            
-            self.driver = webdriver.Chrome(options=chrome_options)
-            self.driver.get('https://kns.cnki.net/KNS8/Navi?' + url)
-            
+            chrome_options.add_argument('--no-sandbox')
+            chrome_options.add_argument('--disable-dev-shm-usage')
+
+            # 添加以下选项来模拟真实浏览器
+            chrome_options.add_argument(
+            '--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36')
+            chrome_options.add_argument('--disable-blink-features=AutomationControlled')
+            chrome_options.add_experimental_option('excludeSwitches', ['enable-automation'])
+            chrome_options.add_experimental_option('useAutomationExtension', False)
+
+            self.driver = webdriver.Chrome(chrome_options=chrome_options)
+            self.driver.implicitly_wait(3)
+
+            source_url = "https://navi.cnki.net/knavi/detail?" + url
+            self.driver.get(source_url )
+
             # 等待页面加载
-            WebDriverWait(self.driver, 10).until(
-                EC.presence_of_element_located((By.TAG_NAME, "dl"))
+            wait = WebDriverWait(self.driver, 20, poll_frequency=1)
+            element = wait.until(
+                EC.presence_of_element_located((By.CLASS_NAME, "bodymain"))
             )
-            
+            if not element:
+                raise TimeoutException("页面关键元素未加载")
+
             # 获取渲染后的页面内容
             page_source = self.driver.page_source
             soup = BeautifulSoup(page_source, 'html.parser')
@@ -1071,6 +1139,11 @@ class Source(CrawlBase):
         basic = item['basic']
         publish = item['publish']
         evaluation = item['evaluation']
+        
+        # 存储到redis
+        self.r.set(name, url)
+        print(name)
+        print(url)
         sql = "insert into source(url, name, basic_info, publish_info, evaluation) " \
               "VALUES ('{}','{}','{}','{}','{}')".format(url, name, basic, publish, evaluation)
         executeSql(db, sql)
@@ -1091,17 +1164,58 @@ class Organization(CrawlBase):
         # req = requests.get(new_url, headers=headers)
         # self.soup = BeautifulSoup(req.text, 'html.parser')
         try:
+            # 使用Selenium
             chrome_options = Options()
-            chrome_options.add_argument('--headless')
+            # chrome_options.add_argument('--headless')  # 无界面模式
             chrome_options.add_argument('--disable-gpu')
-            
-            self.driver = webdriver.Chrome(options=chrome_options)
-            self.driver.get('https://kns.cnki.net/kcms/detail/knetsearch.aspx?sfield=in&' + url)
-            
+            chrome_options.add_argument('--no-sandbox')
+            chrome_options.add_argument('--disable-dev-shm-usage')
+
+            # 添加以下选项来模拟真实浏览器
+            chrome_options.add_argument(
+                '--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36')
+            chrome_options.add_argument('--disable-blink-features=AutomationControlled')
+            chrome_options.add_experimental_option('excludeSwitches', ['enable-automation'])
+            chrome_options.add_experimental_option('useAutomationExtension', False)
+
+            self.driver = webdriver.Chrome(chrome_options=chrome_options)
+            self.driver.implicitly_wait(3)
+
+            source_url = "https://kns.cnki.net/kcms2/organ/detail?" + url
+            self.driver.get(source_url)
+
             # 等待页面加载
-            WebDriverWait(self.driver, 10).until(
-                EC.presence_of_element_located((By.CLASS_NAME, "orginfo"))
+            wait = WebDriverWait(self.driver, 20, poll_frequency=1)
+            element = wait.until(
+                EC.presence_of_element_located((By.CLASS_NAME, "doc"))
             )
+            if not element:
+                raise TimeoutException("页面关键元素未加载")
+            
+            # 模拟页面滚动以加载所有内容
+            last_height = self.driver.execute_script("return document.body.scrollHeight")
+            scroll_pause_time = random.uniform(1, 3)  # 随机等待1-3秒
+                
+            while True:
+                # 滚动到页面底部
+                self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+                    
+                # 等待页面加载
+                time.sleep(scroll_pause_time)
+                    
+                # 计算新的滚动高度并与之前的滚动高度进行比较
+                new_height = self.driver.execute_script("return document.body.scrollHeight")
+                if new_height == last_height:
+                    # 如果高度没有变化，说明已经到底部了
+                    break
+                last_height = new_height
+                    
+                # 更新等待时间
+                scroll_pause_time = random.uniform(1, 3)
+                
+            # 再次滚动到顶部，确保所有元素都被载
+            self.driver.execute_script("window.scrollTo(0, 0);")
+            time.sleep(2)
             
             # 获取渲染后的页面内容
             page_source = self.driver.page_source
@@ -1116,51 +1230,98 @@ class Organization(CrawlBase):
                 self.driver.quit()
 
     def crawl(self):
-        item = {'url': self.url, 'name': self.doc.h1.text if self.doc.h1 else ''}
+        item = {'url': self.url, 'name': self.doc.find('h1', id='showname').text  if self.doc.h1 else ''}
 
         # 获取主要信息的div
-        rowall = self.doc.find('div', class_='rowall')
+        rowall = self.doc.find('div', class_='module module-content')
 
         # 获取曾用名，地域，网址
-        if rowall:
-            used_name_span = rowall.find('span', string=re.compile('曾用名'))
-            region_span = rowall.find('span', string=re.compile('地域'))
-            website = rowall.find('span', string=re.compile('网址'))
-            if used_name_span:
-                item['used_name'] = used_name_span.next_sibling.text if used_name_span.next_sibling else ''
-            else:
-                item['used_name'] = ''
-            if region_span:
-                item['region'] = region_span.next_sibling.text if region_span.next_sibling else ''
-            else:
-                item['region'] = ''
-            if website:
-                item['website'] = website.next_sibling.text if website.next_sibling else ''
-            else:
-                item['website'] = ''
-        else:
-            item['used_name'] = ''
-            item['region'] = ''
-            item['website'] = ''
+        # if rowall:
+        #     used_name_span = rowall.find('span', string=re.compile('曾用名'))
+        #     region_span = rowall.find('span', string=re.compile('地域'))
+        #     website = rowall.find('span', string=re.compile('网址'))
+        #     item['used_name'] = used_name_span.next_sibling.text.strip() if used_name_span and used_name_span.next_sibling else ''
+        #     item['region'] = region_span.next_sibling.text.strip() if region_span and region_span.next_sibling else ''
+        #     item['website'] = website.next_sibling.text.strip() if website and website.next_sibling else ''
+        # else:
+        item['used_name'] = ''
+        item['region'] = ''
+        item['website'] = ''
 
-        # 如果有logo就下载下来
-        logo_div = self.doc.find('div', class_="organ-logo")
-        if logo_div:
-            try:
-                img = logo_div.find('img')
-                src = img.get('src')
-                imgurl = re.sub(r'\s', '', src)
-                # print(os.getcwd())
-                req1 = requests.get(imgurl)
-                path = PATH + item['name'] + '.jpg'
-                f = open(path, 'wb')
-                f.write(req1.content)
-                f.close()
-            except Exception as e:
-                print('存取图片异常')
-                raise e
-        else:
-            print('{},无logo'.format(item['name']))
+        # 获取机构主要作者
+        authors_div = self.doc.find('div', id='kcms-institution-author')
+        authors = []
+        if authors_div:
+            author_list = authors_div.find_all('li')
+            for author in author_list:
+                name = author.find('a').text.strip()
+
+                publications_span = author.find('b')
+                publications = author.find('b').text.strip() if publications_span else ''
+                
+                affiliations_span = author.find('span', class_='affi')
+                affiliations = affiliations_span.text.strip() if affiliations_span else ''
+                
+                major_span = author.find('span', class_='orgn')
+                major = major_span.text.strip() if major_span else ''
+                
+                authors.append({
+                    'name': name,
+                    'publications': publications,
+                    'affiliations': affiliations,
+                    'major': major
+                })
+        item['authors'] = authors
+
+        # 获取重点学科
+        subjects_div = self.doc.find('div', id='kcms-institution-subject')
+        subjects = []
+        if subjects_div:
+            subject_list = subjects_div.find_all('li')
+            for subject in subject_list:
+                name = subject.find('a').text.strip()
+                count = subject.find('a').next_sibling.strip().strip('()')
+                subjects.append({
+                    'name': name,
+                    'count': count
+                })
+        item['subjects'] = subjects
+
+        # 获取机构文献
+        journal_literatures_div = self.doc.find('div', id='KCMS-INSTITUTION-JOURNAL-LITERATURES')
+        journal_literatures = []
+        if journal_literatures_div:
+            literature_list = journal_literatures_div.find_all('li')
+            for literature in literature_list:
+                title = literature.find('a').text.strip()
+                authors = literature.find('a').next_sibling.strip()
+                literature_url = literature.find('a')['href']
+                source_tag = literature.find('a', href=re.compile('journals'))
+                source = source_tag.text.strip() if source_tag else ''
+                source_url = source_tag['href'] if source_tag else ''
+                source_issue_tag = literature.find('a', href=re.compile('issues'))
+                source_issue = source_issue_tag.text.strip() if source_issue_tag else ''
+                source_issue_url = source_issue_tag['href'] if source_issue_tag else ''
+                
+                # 解析URL以获取v参数
+                parsed_url = urlparse(literature_url)
+                v_param = parse_qs(parsed_url.query).get('v', [''])[0]
+                
+                journal_literatures.append({
+                    'title': title,
+                    'authors': authors,
+                    'source': source,
+                    'source_url': source_url,
+                    'source_issue': source_issue,
+                    'source_issue_url': source_issue_url,
+                    'journal': source,  # 如果需要保持原有字段
+                    'journal_url': source_url,  # 如果需要保持原有字段
+                    'journal_issue': source_issue,  # 如果需要保持原有字段
+                    'journal_issue_url': source_issue_url,  # 如果需要保持原有字段
+                    'v_param': v_param
+                })
+        item['journal_literatures'] = journal_literatures
+
         return item
 
     def store(self, db):
@@ -1170,9 +1331,33 @@ class Organization(CrawlBase):
         used_name = item['used_name']
         region = item['region']
         website = item['website']
-        sql = "INSERT INTO organization(url,name,used_name,region,website) " \
+        sql = "INSERT INTO organization(url, name, used_name, region, website) " \
               "VALUES ('{}','{}','{}','{}','{}')".format(url, name, used_name, region, website)
         executeSql(db, sql)
+        
+        journal_literatures = item['journal_literatures']
+        for journal_literature in journal_literatures:
+            url_article = journal_literature['journal_url']  
+            url_source = journal_literature['source_url']  
+            status = 0  # 初值为0
+
+            sql_article_source = "INSERT INTO re_article_source(url_article, url_source, status) " \
+                           "VALUES ('{}','{}','{}')".format(url_article, url_source, status)
+            executeSql(db, sql_article_source)
+        
+            # 插入文章作者信息
+        # authors = item['authors']
+        # url_author = 
+        # for author in authors:
+        #     url_author = author['url']  # 假设作者的URL存储在'name'字段中，需要根据实际情况调整
+        #     for journal_literature in journal_literatures:
+        #         url_article = journal_literature['journal_url']  
+        #         status = 0  # 初值为0
+
+        #         sql_article_author = "INSERT INTO re_article_author(url_article, url_author, status) " \
+        #                        "VALUES (%s, %s, %s)"
+        #         executeSql(db, sql_article_author, (url_article, url_author, status))
+
 
 
 def executeSql(db, sql):
@@ -1200,17 +1385,21 @@ def getArticleUrls(db):
           'LEFT JOIN article ON re_article_source.url_article=article.url ' \
           'WHERE article.url is NULL'
     curr = db.cursor()
-    curr.execute(sql)
-    urls = []
-    for data in curr.fetchall():
-        url = data[0]
-        urls.append(url)
 
-    sql2 = 'SELECT DISTINCT re_article_author.url_article ' \
-           'FROM re_article_author ' \
-           'LEFT JOIN article ON re_article_author.url_article=article.url ' \
-           'WHERE article.url is NULL'
-    curr.execute(sql2)
+    urls = []
+
+
+    # sql2 = 'SELECT DISTINCT re_article_author.url_article ' \
+    #        'FROM re_article_author ' \
+    #        'LEFT JOIN article ON re_article_author.url_article=article.url ' \
+    #        'WHERE article.url is NULL'
+    #
+    # curr.execute(sql2)
+    # for data in curr.fetchall():
+    #     url = data[0]
+    #     urls.append(url)
+
+    curr.execute(sql)
     for data in curr.fetchall():
         url = data[0]
         urls.append(url)

@@ -84,8 +84,12 @@ def getOrganizationDetail(url):
 def getSourceDetail(url):
     """获取文献来源url"""
     matcher = NodeMatcher(g)
+    # m = matcher.match("source").where("_.url = $url").first(url=url)
+    # print(url)
     m = matcher.match("source").where("_.url ='{}'".format(url))
+    # print(m)
     res = m.first()
+    print(res)
     source = Source()
     if res:
         source.url = res.get('url')

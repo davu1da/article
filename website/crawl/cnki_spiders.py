@@ -14,8 +14,8 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import TimeoutException, WebDriverException, StaleElementReferenceException
-
-
+import build_neo4j as bn
+from py2neo import Graph, Node, Relationship
 from website.crawl.utils import *
 from urllib.parse import urlparse, parse_qs
 
@@ -1588,9 +1588,16 @@ def crawlOrganization(urls, db):
 
 def main(db):
     """爬虫主程序"""
+    db = pymysql.connect(host=MYSQL_HOST, user=USERNAME, passwd=PASSWORD,
+                                 db=DATABASE, port=MYSQL_PORT, charset='utf8')
+    g = Graph("bolt://localhost:7687", auth=("neo4j", "12345678"))
     while True:
         urls_1 = getArticleUrls(db)
+        if len(urls_1) == 0:
+            break
+        
         crawlArticle(urls_1, db)
+        
         # urls_2 = getAuthorsUrls(db)
         # crawlAuthor(urls_2, db)
         # urls_3 = getAuthorsUrls_ts(db)
@@ -1599,3 +1606,12 @@ def main(db):
         # crawlSource(urls_3, db)
         # urls_4 = getOrganizationUrls(db)
         # crawlOrganization(urls_4, db)
+        
+        try:
+            # save_article(db, g)
+            bn.main(db, g)
+            db.close()
+        except:
+            print('存储文章节点neo4j异常')
+            return
+        

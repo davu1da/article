@@ -2070,3 +2070,18 @@ select {
 #craw-button:active {
     background-color: #0B6CD2; /* 按下时的背景颜色 */
 }
+
+.suggestions-container {
+    font-family: Arial, sans-serif; /* 设置你想要的字体 */
+    color: black; /* 设置字体颜色为黑色 */
+}
+
+.suggestion-item {
+    font-family: Arial, sans-serif; /* 设置你想要的字体 */
+    color: black; /* 设置字体颜色为黑色 */
+}
+
+.no-suggestions {
+    font-family: Arial, sans-serif; /* 设置你想要的字体 */
+    color: black; /* 设置字体颜色为黑色 */
+}

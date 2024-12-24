@@ -2007,6 +2007,9 @@ select {
     color: #555; /* 字体颜色 */
 }
 
+.search-suggestion-title, .suggestion-item, .no-suggestions, .error {
+    display: block; /* 确保内容可见 */
+}
 /* 提示卡片样式 */
 .empty-card {
     background-color: #f9f9f9; /* 背景颜色 */

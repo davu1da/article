@@ -139,8 +139,8 @@ def set_craw(request):
             print(f"Received settings: keyword={keyword}, frequency={frequency}, frequency_unit={frequency_unit}")
 
             # 构建命令行命令
-            venv_path = 'c:/Users/Sunshine/softwaredesign/docsearch-master/.venv/Scripts/activate'
-            crawler_script = 'c:/Users/Sunshine/softwaredesign/docsearch-master/run_crawler.py'
+            venv_path = 'c:/Users/Sunshine/softwaredesign/docsearch/.venv/Scripts/activate'
+            crawler_script = 'c:/Users/Sunshine/softwaredesign/docsearch/run_crawler.py'
             command = [
                 'cmd.exe', '/c', f'call {venv_path} && python {crawler_script}',
                 '--keyword', str(keyword),

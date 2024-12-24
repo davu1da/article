@@ -1,6 +1,7 @@
 from django.conf import settings
 from openai import OpenAI
 import json
+import ollama
 def parse_suggestions_to_json(suggestions_str):
     # 去除字符串两端的空白字符
     suggestions_str = suggestions_str.strip()
@@ -121,44 +122,51 @@ def get_search_suggestion(keyword=''):
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 
-@csrf_exempt
-def get_search_suggestion_2(request, keyword):
-    client = OpenAI(
-        api_key=settings.KIMI_API_KEY,
-        base_url="https://api.moonshot.cn/v1",
-    )
 
-    if not keyword:
+import re
+from django.http import JsonResponse
+
+def clean_suggestion(suggestion):
+    # 使用正则表达式去掉编号和引号
+    cleaned = re.sub(r'^\d+\.\s*"?([^"]*)"?$', r'\1', suggestion)
+    return cleaned.strip()
+@csrf_exempt
+def get_search_suggestion_2(request,prompt):
+    if not prompt:
+        # 默认的搜索建议提示
         system_message = "你是一个学术搜索助手，请给出一些学术文献搜索的建议。"
         user_message = "请给出3-5条简短的文献搜索建议，每条建议不超过20字。"
     else:
-        system_message = "你是一个学术搜索助手，请根据用户的搜索关键词给出相关的论文搜索建议。"
-        user_message = f"关键词是：{keyword}。请给出3-5条相关的搜索建议，每条建议不超过20字。"
-
+        system_message = "你是一个学术搜索助手，请根据用户的搜索关键词给出相关的搜索建议。"
+        user_message = f"关键词是：{prompt}。请给出3-5条相关的搜索建议，每条建议不超过20字。"
+        
+    prompt = system_message + "\n" + user_message
     try:
-        completion = client.chat.completions.create(
-            model="moonshot-v1-8k",
-            messages=[
-                {"role": "system", "content": system_message},
-                {"role": "user", "content": user_message}
-            ],
-            temperature=0.3,
-            timeout=10  # 设置请求的超时时间为 10 秒
+        response = ollama.generate(
+            model='qwen2.5:7b',
+            prompt=prompt
         )
-
-        # 处理 completion 对象为类实例的情况
-        if hasattr(completion, 'choices') and len(completion.choices) > 0:
-            suggestions_str = completion.choices[0].message.content
-        elif isinstance(completion, dict) and 'choices' in completion and len(completion['choices']) > 0:
-            suggestions_str = completion['choices'][0]['message']['content']
+        print(response)
+        
+        if response['done']:
+            suggestions_str = response['response']
         else:
+            print("Error 没有！ search suggestions")
             return JsonResponse({"suggestions": []}, status=500)
 
         # 解析建议内容
         suggestions_list = suggestions_str.strip().split('\n')
-        suggestions = [{"suggestion": suggestion.strip()} for suggestion in suggestions_list]
-
-        return JsonResponse({"suggestions": suggestions})
+        print("可以解析")
+        print(suggestions_list)
+        
+        # 清理每个建议项
+        cleaned_suggestions = [clean_suggestion(suggestion) for suggestion in suggestions_list]
+        
+        # suggestions = [{"suggestion": suggestion} for suggestion in cleaned_suggestions if suggestion]
+        print("=================================")
+        # print(suggestions)
+        print(cleaned_suggestions)
+        return JsonResponse(cleaned_suggestions, safe=False)
     except Exception as e:
         print(f"Error fetching search suggestions: {e}")
         return JsonResponse({"suggestions": []}, status=500)

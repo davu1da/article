@@ -53,11 +53,12 @@ def schedule_crawler(keyword, frequency, frequency_unit):
         time.sleep(1)
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Run the CNKI crawler with specified keyword and frequency.")
-    parser.add_argument('--keyword', type=str, required=True, help='The keyword to search for.')
-    parser.add_argument('--frequency', type=int, required=True, help='The frequency of the crawler.')
-    parser.add_argument('--frequency_unit', type=str, default='minutes', choices=['minutes', 'hours', 'days'], help='The unit of frequency (default: minutes).')
-
-    args = parser.parse_args()
-
-    schedule_crawler(args.keyword, args.frequency, args.frequency_unit)
+    # parser = argparse.ArgumentParser(description="Run the CNKI crawler with specified keyword and frequency.")
+    # parser.add_argument('--keyword', type=str, required=True, help='The keyword to search for.')
+    # parser.add_argument('--frequency', type=int, required=True, help='The frequency of the crawler.')
+    # parser.add_argument('--frequency_unit', type=str, default='minutes', choices=['minutes', 'hours', 'days'], help='The unit of frequency (default: minutes).')
+    #
+    # args = parser.parse_args()
+    #
+    # schedule_crawler(args.keyword, args.frequency, args.frequency_unit)
+    crawl_with_keyword("人")

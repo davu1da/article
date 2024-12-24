@@ -179,41 +179,47 @@ function refreshSuggestion() {
     var suggestionDiv = document.getElementById("search-suggestion");
     var inputValue = input.value.trim();
 
-    if (inputValue.length < 3) {
-        // 清空建议列表，但保留标题
-        suggestionDiv.innerHTML = '<div class="search-suggestion-title">搜索建议</div>';
-        return;
-    }
+    // 检查输入是否为空或包含中文字符
+    if (inputValue.length === 0 || /[\u4e00-\u9fa5]/.test(inputValue)) {
+        if (inputValue.length < 3) {
+            // 清空建议列表，但保留标题
+            suggestionDiv.innerHTML = '<div class="search-suggestion-title">搜索建议</div>';
+            return;
+        }
 
-    // 发送 AJAX 请求获取搜索建议
-    fetch(`/search/suggest/${encodeURIComponent(inputValue)}`)
-        .then(response => response.json())
-        .then(data => {
-            // 假设服务器返回的数据是一个字符串数组
-            suggestionDiv.innerHTML = '<div class="search-suggestion-title">搜索建议</div>'; // 保留标题
-            if (data && data.length > 0) {
-                var suggestionsContainer = document.createElement('div');
-                suggestionsContainer.className = 'suggestions-container';
-                data.forEach(suggestion => {
-                    var suggestionItem = document.createElement('div');
-                    suggestionItem.className = 'suggestion-item';
-                    suggestionItem.textContent = suggestion;
-                    suggestionItem.addEventListener('click', function() {
-                        input.value = suggestion;
-                        suggestionDiv.innerHTML = '<div class="search-suggestion-title">搜索建议</div>'; // 清空建议列表，但保留标题
-                        input.focus(); // 重新聚焦输入框
+        // 发送 AJAX 请求获取搜索建议
+        fetch(`/search/suggest/${encodeURIComponent(inputValue)}`)
+            .then(response => response.json())
+            .then(data => {
+                // 服务器返回的数据是一个字符串数组
+                suggestionDiv.innerHTML = '<div class="search-suggestion-title">搜索建议</div>'; // 保留标题
+                if (data && data.length > 0) {
+                    var suggestionsContainer = document.createElement('div');
+                    suggestionsContainer.className = 'suggestions-container';
+                    data.forEach(suggestion => {
+                        var suggestionItem = document.createElement('div');
+                        suggestionItem.className = 'suggestion-item';
+                        suggestionItem.textContent = suggestion;
+                        suggestionItem.addEventListener('click', function() {
+                            input.value = suggestion;
+                            suggestionDiv.innerHTML = '<div class="search-suggestion-title">搜索建议</div>'; // 清空建议列表，但保留标题
+                            input.focus(); // 重新聚焦输入框
+                        });
+                        suggestionsContainer.appendChild(suggestionItem);
                     });
-                    suggestionsContainer.appendChild(suggestionItem);
-                });
-                suggestionDiv.appendChild(suggestionsContainer);
-            } else {
-                suggestionDiv.innerHTML += '<div class="no-suggestions">没有找到建议</div>';
-            }
-        })
-        .catch(error => {
-            console.error('Error fetching suggestions:', error);
-            suggestionDiv.innerHTML += '<div class="error">无法获取建议</div>';
-        });
+                    suggestionDiv.appendChild(suggestionsContainer);
+                } else {
+                    suggestionDiv.innerHTML += '<div class="no-suggestions">没有找到建议</div>';
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching suggestions:', error);
+                suggestionDiv.innerHTML += '<div class="error">无法获取建议</div>';
+            });
+    } else {
+        // 如果输入不为空且不包含中文字符，清空建议列表
+        suggestionDiv.innerHTML = '<div class="search-suggestion-title">搜索建议</div>';
+    }
 }
 </script>
 <script type="text/javascript" src="{% static 'search/js/leader-line.js' %}"></script>

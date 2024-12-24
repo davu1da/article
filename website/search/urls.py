@@ -25,7 +25,7 @@ urlpatterns = [
     path('source/<str:sourcename>', views.sourceDetail, name='source'),
 
     # 搜索建议路径，包含一个字符串参数 keyword
-    path('suggest/<str:keyword>', views.get_search_suggestion_2, name='suggest'),
+    path('suggest/<str:prompt>', views.get_search_suggestion_2, name='suggest'),
 
     path('setcraw/', views.set_craw, name='set_craw'),
     
